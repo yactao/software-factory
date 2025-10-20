@@ -1,0 +1,35 @@
+# Environnements & secrets
+.env
+.env.* 
+*.key
+*.pem
+
+# Environnements Python
+.venv/
+venv/
+ENV/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.egg-info/
+.python-version
+
+# Outils/IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Caches/tests
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Azure local artifacts
+.python_packages/

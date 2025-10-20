@@ -1,0 +1,36 @@
+# Index Trading (conformité, opérations, contrats…)
+name: idx-oil-demo
+query:
+  type: semantic
+  semanticConfiguration: default
+select:
+  - id
+  - title
+  - content
+  - source_path
+  - metadata_title
+  - commodity
+  - product_type
+  - region
+  - route
+  - port
+  - operation_type
+  - vessel_class
+  - contract_type
+  - hedge_instruments
+  - jurisdiction
+  - "@search.rerankerScore"
+  - "@search.score"
+  - "@search.captions"
+answers:
+  enabled: false            # souvent non nécessaire si contexte complet
+captions:
+  enabled: true
+thresholds:
+  reranker_min: 1.2
+  bm25_min: 1.0
+filters_supported:
+  - path_prefix
+  - tenant_id
+  - eq
+  - any_in

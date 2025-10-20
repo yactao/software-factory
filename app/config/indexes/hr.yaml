@@ -1,0 +1,30 @@
+# Index RH (politiques internes, procédures…)
+name: idx-hr
+query:
+  type: semantic
+  semanticConfiguration: semantic-config
+select:
+  - id
+  - title
+  - content
+  - path
+  - source_path
+  - metadata_title
+  - section
+  - headings
+  - "@search.rerankerScore"
+  - "@search.score"
+  - "@search.captions"
+answers:
+  enabled: true
+  count: 3
+captions:
+  enabled: true
+thresholds:
+  reranker_min: 1.2
+  bm25_min: 1.0
+filters_supported:
+  - path_prefix
+  - tenant_id
+  - eq
+  - any_in
