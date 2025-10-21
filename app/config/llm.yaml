@@ -1,7 +1,7 @@
 # Mapping des LLM supportés + réglages par défaut
 default:
   provider: gemini             # gemini | openai | deepseek
-  model: gemini-1.5-flash
+  model: gemini-2.0-flash
   temperature: 0.2
   max_output_tokens: 900
   retries: 4
@@ -9,8 +9,7 @@ default:
 providers:
   gemini:
     models:
-      - gemini-1.5-flash
-      - gemini-1.5-pro
+      - gemini-2.0-flash
     # variables d'env requises: GEMINI_API_KEY
   openai:
     models:
@@ -28,7 +27,7 @@ presets:
   # règles système utilisées par l’orchestrateur selon l’agent
   rag_generic:
     provider: ${LLM_PROVIDER:-gemini}
-    model: ${LLM_MODEL:-gemini-1.5-flash}
+    model: ${LLM_MODEL:-gemini-2.0-flash}
     temperature: 0.2
     max_output_tokens: 900
     system_rules: |
@@ -36,7 +35,7 @@ presets:
       Interdis les références inline [n]; fournis un JSON {"answer": "...", "uses_context": true|false, "used_sources":[...]}.
   trading:
     provider: ${LLM_PROVIDER:-gemini}
-    model: ${LLM_MODEL:-gemini-1.5-flash}
+    model: ${LLM_MODEL:-gemini-2.0-flash}
     temperature: 0.2
     max_output_tokens: 1100
     system_rules: |
@@ -44,7 +43,7 @@ presets:
       Sortie JSON {"answer": "...", "uses_context": true|false, "used_sources":[...]} sans markdown ni puces.
   prompt_only:
     provider: ${LLM_PROVIDER:-gemini}
-    model: ${LLM_MODEL:-gemini-1.5-flash}
+    model: ${LLM_MODEL:-gemini-2.0-flash}
     temperature: 0.2
     max_output_tokens: 700
     system_rules: |

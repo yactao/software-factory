@@ -110,7 +110,6 @@ def finance_endpoint(body: RAGBody, claims=Depends(require_user)):
 
 
 # --------- Prompt-only (sans retrieval) ---------
-# Option simple: route vers l’agent "rag" mais tu peux créer un agent dédié si besoin.
 
 @router.post("/search")
 def search_prompt_only(body: SearchBody, claims=Depends(require_user)):

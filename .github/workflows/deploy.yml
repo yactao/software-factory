@@ -1,0 +1,52 @@
+name: Deploy AINA Backend (OIDC)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # OIDC
+  contents: read
+
+env:
+  AZURE_WEBAPP_NAME: "app-rag-its-new2"   # <- Nom de ta Web App
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # pytest -q   # (optionnel)
+
+      # Connexion Azure via OIDC (nécessite les 3 secrets ci-dessous dans GitHub)
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}       # App registration (client)
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}       # Directory (tenant)
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Déploiement vers App Service (Oryx détecte Python et build)
+      - name: Deploy to Azure WebApp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: .
+
+      - name: Post-Deployment ping
+        run: echo "Deployment completed"
