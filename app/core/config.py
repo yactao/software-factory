@@ -88,6 +88,7 @@ DEFAULT_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://app-rag-climmag-prod.azurewebsites.net",
+    "https://st4x2hamb3rger.z28.web.core.windows.net",
 ]
 origins = _parse_origins(os.getenv("FRONT_ORIGIN", "")) or DEFAULT_ORIGINS
 
