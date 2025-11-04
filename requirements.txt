@@ -1,28 +1,16 @@
 fastapi
 uvicorn[standard]
-
-# Auth JWT (tu l’utilises dans security.py)
-PyJWT[crypto]>=2.9.0
-
-# Azure Tables (déjà présent) + **Blob Storage (manquait)**
-azure-core
-azure-data-tables
-azure-storage-blob>=12.19.0
-
-# Vision Custom Vision (ok)
-azure-cognitiveservices-vision-customvision
-msrest
-
-# LLMs (évite le doublon – garde UNE des deux libs Google)
-google-generativeai
-# google-genai  # ← retire-la si tu gardes google-generativeai
-
-# OpenAI (pour DeepSeek via compat)
-openai>=1.40.0
-
-# Divers
 python-dotenv==1.0.1
 requests==2.32.3
+google-generativeai
+azure-data-tables
+azure-core
+azure-storage-blob>=12.19.0
+google-genai>=0.3.0
 pydantic
+pdf2image
 python-multipart
 Pillow
+openai>=1.40.0
+azure-cognitiveservices-vision-customvision
+msrest
