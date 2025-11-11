@@ -2,11 +2,18 @@ from typing import Dict, Any, Optional, List
 
 def _build_odata_filter(filters: Optional[Dict[str, Any]]) -> str:
     """
-    Construit un filtre OData avec les colonnes du nouvel index:
-      - file_name: égalité stricte ou 'startswith' simple
-      - chunk_type: égalité stricte (ex: 'paragraph', 'table', 'checkbox')
-      - page: entier exact ou intervalle
-      - section_path: élément exact dans la collection (pas de contains partiel côté OData)
+    Filtres OData compatibles avec l'index `mdm-audit-cv-index`.
+    Champs pris en charge:
+      - entity_type: 'audit_pdf' | 'cv'
+      - source_container: ex. 'audit', 'ds-cv'
+      - file_name: égalité stricte
+      - file_name_prefix: startswith(file_name, ...)
+      - magasin_name: égalité stricte
+      - magasin_name_prefix: startswith(magasin_name, ...)
+      - magasin_code: égalité stricte
+      - cv_person_name: égalité stricte
+      - cv_specialty: égalité stricte
+      - extracted_at_ge / extracted_at_le: bornes datetime ISO 8601
     """
     if not filters:
         return ""
@@ -16,43 +23,39 @@ def _build_odata_filter(filters: Optional[Dict[str, Any]]) -> str:
 
     clauses: List[str] = []
 
-    # file_name exact
-    if "file_name" in filters and filters["file_name"]:
-        clauses.append(f"file_name eq '{esc(filters['file_name'])}'")
+    # typage document
+    if filters.get("entity_type"):
+        clauses.append(f"entity_type eq '{esc(filters['entity_type'])}'")
 
-    # file_name startswith
-    if "file_name_prefix" in filters and filters["file_name_prefix"]:
+    # source container
+    if filters.get("source_container"):
+        clauses.append(f"source_container eq '{esc(filters['source_container'])}'")
+
+    # file_name strict / prefix
+    if filters.get("file_name"):
+        clauses.append(f"file_name eq '{esc(filters['file_name'])}'")
+    if filters.get("file_name_prefix"):
         clauses.append(f"startswith(file_name, '{esc(filters['file_name_prefix'])}')")
 
-    # chunk_type
-    if "chunk_type" in filters and filters["chunk_type"]:
-        clauses.append(f"chunk_type eq '{esc(filters['chunk_type'])}'")
+    # audit
+    if filters.get("magasin_name"):
+        clauses.append(f"magasin_name eq '{esc(filters['magasin_name'])}'")
+    if filters.get("magasin_name_prefix"):
+        clauses.append(f"startswith(magasin_name, '{esc(filters['magasin_name_prefix'])}')")
+    if filters.get("magasin_code"):
+        clauses.append(f"magasin_code eq '{esc(filters['magasin_code'])}'")
 
-    # page exacte
-    if "page" in filters and filters["page"] is not None:
-        try:
-            page_val = int(filters["page"])
-            clauses.append(f"page eq {page_val}")
-        except Exception:
-            pass
+    # cv
+    if filters.get("cv_person_name"):
+        clauses.append(f"cv_person_name eq '{esc(filters['cv_person_name'])}'")
+    if filters.get("cv_specialty"):
+        clauses.append(f"cv_specialty eq '{esc(filters['cv_specialty'])}'")
 
-    # page mini et maxi
-    if "page_min" in filters and filters["page_min"] is not None:
-        try:
-            pmin = int(filters["page_min"])
-            clauses.append(f"page ge {pmin}")
-        except Exception:
-            pass
-    if "page_max" in filters and filters["page_max"] is not None:
-        try:
-            pmax = int(filters["page_max"])
-            clauses.append(f"page le {pmax}")
-        except Exception:
-            pass
-
-    # section_path: match exact sur un élément de la collection
-    if "section_exact" in filters and filters["section_exact"]:
-        clauses.append(f"'{esc(filters['section_exact'])}' in section_path")
+    # dates
+    if filters.get("extracted_at_ge"):
+        clauses.append(f"extracted_at ge {esc(filters['extracted_at_ge'])}")
+    if filters.get("extracted_at_le"):
+        clauses.append(f"extracted_at le {esc(filters['extracted_at_le'])}")
 
     return " and ".join(clauses)
 

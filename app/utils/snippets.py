@@ -128,27 +128,53 @@ def _sanitize(s: Optional[str]) -> str:
 
 def _extract_title(d: Dict[str, Any]) -> Optional[str]:
     """
-    Nouvel index: utiliser file_name comme titre.
+    Stratégie de titre:
+      - Si CV: cv_person_name ou file_name
+      - Si audit PDF: magasin_name puis file_name
+      - Sinon: file_name
     """
-    t = d.get("file_name")
-    if t:
-        return _sanitize(t)
-    # Secours: tronquer content si besoin
-    cnt = d.get("content") or d.get("table_markdown") or ""
-    if cnt:
-        head = cnt.strip().splitlines()[0][:80]
-        return _sanitize(head) if head else None
-    return None
+    et = (d.get("entity_type") or "").strip().lower()
+    if et == "cv":
+        return (d.get("cv_person_name") or d.get("file_name") or None)
+    if et == "audit_pdf":
+        return (d.get("magasin_name") or d.get("file_name") or None)
+    return d.get("file_name") or None
 
 def _extract_path(d: Dict[str, Any]) -> Optional[str]:
     """
-    Nouvel index: pas de chemin persisté. On retourne None.
-    Si tu veux un pseudo-path, dé-commente la ligne 'blob://'.
+    Retourne l'URL SAS stockée quand elle existe:
+      - audit: pdf_blob_url
+      - cv:    cv_blob_url
+    Sinon None.
     """
-    fn = d.get("file_name")
-    if fn:
-         return f"blob://{fn}"
+    et = (d.get("entity_type") or "").strip().lower()
+    if et == "audit_pdf":
+        return d.get("pdf_blob_url") or None
+    if et == "cv":
+        return d.get("cv_blob_url") or None
     return None
+
+
+def _prefer_answer_or_focused_snippet(question: str, d: dict) -> str:
+    """
+    Prend extractive captions quand dispo, sinon windowing sur content.
+    """
+    caps = d.get("@search.captions") or []
+    cap_text = caps[0].get("text") if caps else ""
+    content_text = d.get("content") or ""
+
+    base = (cap_text + "\n" + content_text).strip() if cap_text else content_text
+    if not base:
+        return ""
+
+    terms = _extract_query_terms(question)
+    if terms:
+        return _best_window(base, terms, window=1400, step=350)
+
+    # fallback: tronque proprement
+    return base[:1200].strip()
+
+
 
 # ============================================================
 # Construction d’un document utilisé
@@ -168,18 +194,19 @@ def _make_used_doc_from_context(c: Dict[str, Any]) -> Dict[str, Any]:
 # Vérifie si le document est dans le scope de confiance
 # ============================================================
 
-
 def _is_in_scope(hits: List[Dict[str, Any]]) -> bool:
     if not hits:
         return False
     top = hits[0]
+    # si reranker dispo on l'utilise, sinon on tombe sur score BM25
     rer = top.get("@search.rerankerScore")
     if isinstance(rer, (int, float)):
-        return rer >= RERANKER_MIN
+        return rer >= max(0.8, RERANKER_MIN)  # petit plancher
     scr = top.get("@search.score")
     if isinstance(scr, (int, float)):
-        return scr >= BM25_MIN
-    return False
+        return scr >= max(0.5, BM25_MIN)      # plancher BM25
+    return True
+
 
 
 # ============================================================
