@@ -9,6 +9,31 @@ _STOPWORDS_FR = {
     "donne","donner","donnez","moi","me","mon","ma","mes","ton","ta","tes","son","sa","ses","est","être",
     "intervention","interventions","descriptif","descriptifs","type","client","ville","date","procès-verbal"
 }
+ 
+
+IMAGE_INTENT_RE = re.compile(r"\b(image|images|photo|photos|illustration|illustrations)\b", re.I)
+
+def _collect_image_urls(hits: List[Dict[str, Any]]) -> List[str]:
+    urls = []
+    for d in hits:
+        # 1) champ direct (ton index)
+        urls.extend(d.get("image_blob_urls") or [])
+        # 2) fallback: parfois le blob unique est dans pdf/image
+        u = d.get("pdf_blob_url")
+        if isinstance(u, str) and u.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+            urls.append(u)
+        # 3) si jamais le texte 'content' contient des URLs d’images
+        content = d.get("content") or ""
+        urls.extend(re.findall(r"https?://\S+\.(?:png|jpe?g|webp)", content, flags=re.I))
+    # dédoublonnage en préservant l’ordre
+    seen = set()
+    uniq = []
+    for u in urls:
+        if u not in seen:
+            seen.add(u)
+            uniq.append(u)
+    return uniq
+
 # ============================================================
 # Normalisation textuelle pour matching
 # ============================================================

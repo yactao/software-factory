@@ -34,11 +34,12 @@ def _search_docs(question: str, filters: Optional[Dict[str, Any]], k: int = RETR
     # IMPORTANT: pas de @search.captions dans $select quand on est en simple
     # (sinon Azure peut râler sur des champs spéciaux non supportés)
     select_fields_simple = (
-        "id,doc_id,file_name,chunk_type,section_path,page,"
-        "content,content_raw,table_markdown,checkbox_lines,"
-        "token_count,chunk_index,chunk_count,hash,"
-        "@search.score"  # PAS de @search.captions ici
+        "id,entity_type,source_container,file_name,content,"
+        "magasin_name,magasin_code,pdf_blob_url,image_blob_container,image_blob_urls,"
+        "cv_person_name,cv_specialty,cv_emails,cv_phones,cv_blob_url,extracted_at,"
+        "@search.score"
     )
+
 
     # --------------- Requête 1: SIMPLE (toujours) ---------------
     payload_simple: Dict[str, Any] = {
