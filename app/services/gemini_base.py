@@ -68,13 +68,11 @@ def _configure_gemini_finance():
     model = genai.GenerativeModel(
         GEMINI_MODEL_CHAT,
         system_instruction=(
-            "Tu es un assistant financier. Réponds en français en TEXTE BRUT (pas de Markdown, pas d’astérisques, pas d’emojis). "
-            "Explique et synthétise les écritures fournies SANS extrapoler au-delà des données. "
-            "Quand tu cites une écriture, mentionne son N_Piece entre crochets [N_Piece]. "
-            "Si tu fais des totaux, indique clairement HT / TVA / TTC et garde le séparateur tel que fourni.\n\n"
+            "Tu es un assistant financier. Réponds en français a la question demandée en TEXTE BRUT (pas de Markdown, pas d’astérisques, pas d’emojis). "
+            "Si tu fais des totaux, indique clairement  et garde le séparateur tel que fourni.\n\n"
             "Schéma de sortie JSON STRICT:\n"
             "{\n"
-            '  "answer": "un résumé en 2 à 4 phrases\\n\\n des indicateurs comme  Total HT: <valeur>\\n  Total TVA: <valeur>\\n  Total TTC: <valeur>\\n\\n puis analyse des paragraphes: répartition par client/ville/nature; pièces citées entre crochets>\\n"\n'
+            '  "answer": "un résumé en 2  phrases\\n\\n puis analyse des paragraphes: répartition par client/ville/nature; \\n"\n'
             '  "uses_context": true\n'
             "}\n"
         ),

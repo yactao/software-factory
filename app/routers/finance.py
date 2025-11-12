@@ -69,103 +69,132 @@ def _extract_answer_text(raw: Any) -> str:
     # 3) Autres types: cast en str
     return _clean_model_text(str(raw)).replace("\\n", "\n").strip()
 
+def _synth_finance(question: str, rows: List[Dict[str, Any]]) -> str:
+    """
+    Synthèse financière adaptée au schéma MDM:
+    Construit des lignes 'magasin/dept/code_magasin/GV/PV/VE_AN/montant_annuel/période/feuille/source'
+    puis demande un résumé à Gemini (prompt financier existant).
+    """
+    def _num(x):
+        try:
+            return float(x) if x is not None and str(x) not in ("", "nan") else None
+        except Exception:
+            return None
 
-def _synth_finance(question: str, tables: List[Dict[str, Any]]) -> str:
-    model = _configure_gemini_finance()
-
-    # Compacte les infos utiles (noms de colonnes + résumé numérique) pour chaque table
-    lines: List[str] = []
-    for t in tables:
-        cols = ", ".join(
-            [c.get("name", "") for c in (t.get("schema") or []) if c.get("name")]
-        )[:300]
-
-        nums = []
-        for n in (t.get("numeric_summary") or [])[:6]:
-            try:
-                nums.append(
-                    f"{n.get('column')} sum={n.get('sum')} "
-                    f"mean={round(float(n.get('mean', 0.0)), 2)} "
-                    f"min={n.get('min')} max={n.get('max')}"
-                )
-            except Exception:
-                continue
-        numline = "; ".join(nums)
+    lines = []
+    for r in rows:
+        montant = r.get("montant_annuel")
+        montant_n = _num(montant)
+        # formatage simple, on laisse la virgule telle quelle si fournie
+        periode = ""
+        if r.get("period_start") or r.get("period_end"):
+            periode = f"{r.get('period_start') or ''} → {r.get('period_end') or ''}"
+        feuille = r.get("sheet_name")
+        if feuille and r.get("sheet_index") is not None:
+            feuille = f"{feuille} (#{r.get('sheet_index')})"
 
         lines.append(
-            f"Fichier={t.get('file_name')} | Feuille={t.get('sheet_name')} | "
-            f"Lignes={t.get('row_count')} | Colonnes={t.get('column_count')} | "
-            f"Colonnes_noms={cols} | Resume_numerique={numline} | CSV={t.get('csv_blob_url') or ''}"
+            "MAGASIN={mag} | DEPT={dep} | CODE={code} | GV={gv} | PV={pv} | VE_AN={ve} | "
+            "MONTANT_ANNUEL={montant} ({montant_num}) | PERIODE={per} | FEUILLE={feuille} | SOURCE={src}".format(
+                mag=r.get("magasin") or "",
+                dep=r.get("dept") or "",
+                code=r.get("code_magasin") or "",
+                gv=r.get("gv") if r.get("gv") is not None else "",
+                pv=r.get("pv") if r.get("pv") is not None else "",
+                ve=r.get("ve_an") if r.get("ve_an") is not None else "",
+                montant=montant if montant is not None else "",
+                montant_num=(f"{montant_n:.2f}" if isinstance(montant_n, (int, float)) else ""),
+                per=periode or "",
+                feuille=feuille or "",
+                src=r.get("source_workbook") or ""
+            )
         )
 
-    user_msg = f"QUESTION: {question}\n\nTABLES:\n" + "\n".join(lines)
+    # Totaux globaux (ils sont déjà présents dans chaque doc, on prend la première ligne si dispo)
+    if rows:
+        r0 = rows[0]
+        totals = []
+        if r0.get("total_gv") is not None:
+            totals.append(f"Total GV: {r0.get('total_gv')}")
+        if r0.get("total_pv") is not None:
+            totals.append(f"Total PV: {r0.get('total_pv')}")
+        if r0.get("total_montant_annuel") is not None:
+            try:
+                tma = float(r0.get("total_montant_annuel"))
+                totals.append(f"Total Montant Annuel: {tma:.2f}")
+            except Exception:
+                totals.append(f"Total Montant Annuel: {r0.get('total_montant_annuel')}")
+        if totals:
+            lines.append("== TOTAUX GLOBAUX == " + " | ".join(totals))
 
-    # Peut renvoyer un dict ou une chaîne JSON: on normalise
-    raw = _call_gemini_json(model, user_msg)
-    answer_txt = _extract_answer_text(raw)
-
-    # Sécurité finale
-    return answer_txt or "Réponse vide."
+    model = _configure_gemini_finance()
+    user_msg = f"QUESTION: {question}\n\nDONNEES:\n" + "\n".join(lines[:300])  # garde jusqu'à 300 lignes max
+    obj = _call_gemini_json(model, user_msg)
+    return _clean_model_text(str(obj.get("answer", "")).strip() or "Réponse vide.")
 
 
 @router.post("/api/finance")
-def finance_api(req: FinanceQuery, claims: dict = Depends(_auth_dependency)):
+def finance_api(req: FinanceQuery, claims: Dict[str, Any] = Depends(_auth_dependency)):
     _require_scope(claims)
 
+    # LOG user
     conv_id = _save_chat_event(
-        claims,
-        req.conversation_id,
-        role="user",
-        route="finance",
+        claims, req.conversation_id, role="user", route="finance",
         message=req.query,
-        meta={"ville": req.ville, "client": req.client, "top": req.top},
+        meta={"ville": req.ville, "client": req.client, "top": req.top}
     )
 
+    # Recherche dans le NOUVEL index MDM
     rows = _search_finance(req.query, req.ville, req.client, req.top or 20)
     if not rows:
         payload = {
-            "answer": "Aucune feuille pertinente trouvée dans l’index financier.",
+            "answer": "Aucune ligne trouvée dans l’index MDM pour cette requête.",
             "rows": [],
             "citations": [],
             "used_docs": [],
-            "conversation_id": conv_id,
+            "conversation_id": conv_id
         }
-        _save_chat_event(
-            claims, conv_id,
-            role="assistant", route="finance",
-            message=payload["answer"], meta=payload
-        )
+        _save_chat_event(claims, conv_id, role="assistant", route="finance",
+                         message=payload["answer"], meta=payload)
         return payload
 
-    # Synthèse pilotée par schema + numeric_summary
-    answer = _synth_finance(req.query, rows[: min(len(rows), 100)])
+    # Synthèse adaptée MDM
+    answer = _synth_finance(req.query, rows[: min(len(rows), 150)])
 
-    # used_docs adaptés au nouveau schéma
+    # 'used_docs' lisible côté front (titre = magasin + feuille ; path = source_workbook)
+    preview = rows[: min(len(rows), 60)]
     used = []
-    for r in rows[: min(len(rows), 50)]:
-        title = f"{r.get('file_name') or 'Fichier'} › {r.get('sheet_name') or 'Feuille'}"
-        path = r.get("csv_blob_url")  # si privé: générer SAS ici
+    for r in preview:
+        title_parts = []
+        if r.get("magasin"):
+            title_parts.append(str(r.get("magasin")))
+        if r.get("sheet_name"):
+            title_parts.append(str(r.get("sheet_name")))
+        title = " — ".join(title_parts) or (r.get("code_magasin") or "Ligne")
+
         used.append({
             "id": r.get("id"),
             "title": title,
-            "path": path,
+            "path": r.get("source_workbook") or "",
             "meta": {
-                "sheet_index": r.get("sheet_index"),
-                "row_count": r.get("row_count"),
-                "column_count": r.get("column_count"),
-            },
+                "dept": r.get("dept"),
+                "code_magasin": r.get("code_magasin"),
+                "gv": r.get("gv"),
+                "pv": r.get("pv"),
+                "ve_an": r.get("ve_an"),
+                "montant_annuel": r.get("montant_annuel"),
+                "period_start": r.get("period_start"),
+                "period_end": r.get("period_end"),
+            }
         })
 
     payload = {
-        "answer": answer,                     # ← maintenant du texte propre
-        "rows": rows[: min(len(rows), 200)],  # feuilles pertinentes
+        "answer": answer,
+        "rows": rows[: min(len(rows), 300)],
         "citations": [],
         "used_docs": used,
-        "conversation_id": conv_id,
+        "conversation_id": conv_id
     }
-    _save_chat_event(
-        claims, conv_id,
-        role="assistant", route="finance",
-        message=answer, meta=payload
-    )
+    _save_chat_event(claims, conv_id, role="assistant", route="finance",
+                     message=answer, meta=payload)
     return payload

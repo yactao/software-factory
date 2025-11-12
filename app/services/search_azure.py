@@ -162,33 +162,60 @@ def _search_trading_docs(question: str, filters: Optional[Dict[str, Any]], k: in
     return resp.json()
 
 def _search_finance(q: str, ville: Optional[str], client: Optional[str], top: int = 20) -> List[Dict[str, Any]]:
+    """
+    Recherche dans l'index 'mdm-finance-index' (magasin/dept/code_magasin/...).
+    Paramètres:
+      - q: texte libre (cherche sur les champs 'magasin', 'client_name', 'source_workbook')
+      - ville: pour compat rétro, sert à filtrer soit dept (si numérique), soit magasin (si texte)
+      - client: mappe vers client_name
+    """
     _require_search_config()
     url = f"{AZURE_SEARCH_ENDPOINT}/indexes/{AZURE_SEARCH_INDEX_FINANCE}/docs/search?api-version={AZURE_SEARCH_API_VER}"
     headers = {"Content-Type": "application/json", "api-key": AZURE_SEARCH_API_KEY}
 
-    # L’index ne contient pas de champs 'Ville' / 'Client'. On les injecte dans le texte de recherche.
-    search_text = " ".join([s for s in [q or "", ville or "", client or ""] if s.strip()]) or "*"
+    def _is_numlike(s: str) -> bool:
+        try:
+            return str(s).strip() != "" and str(s).strip().replace(" ", "").isdigit()
+        except Exception:
+            return False
+
+    filters: List[str] = []
+    if ville:
+        v = _odata_escape(ville.strip())
+        if _is_numlike(v):
+            # Interprète "ville" numérique comme un code de département (dept)
+            filters.append(f"dept eq '{v}'")
+        else:
+            # Texte → filtre sur le nom du magasin (exact ou préfixe)
+            filters.append(f"(magasin eq '{v}' or startswith(magasin, '{v}'))")
+    if client:
+        c = _odata_escape(client.strip())
+        filters.append(f"client_name eq '{c}'")
+
+    odata_filter = " and ".join(filters) if filters else None
+
+    select_fields = (
+        "id,magasin,dept,code_magasin,ve_an,gv,pv,montant_annuel,"
+        "client_name,period_start,period_end,total_gv,total_pv,total_montant_annuel,"
+        "source_workbook,sheet_name,sheet_index,updated_at"
+    )
 
     payload: Dict[str, Any] = {
-        "search": search_text,
+        # Recherche simple: si 'q' vide → wildcard
+        "search": (q or "*"),
         "queryType": "simple",
-        "top": min(max(int(top or 20), 1), 50),
-        "select": (
-            "id,entity_type,file_name,sheet_index,sheet_name,row_count,column_count,content,"
-            "csv_blob_container,csv_blob_name,csv_blob_url,extracted_at,schema,numeric_summary"
-        ),
+        "top": min(max(int(top or 20), 1), 200),
+        "select": select_fields,
     }
+    if odata_filter:
+        payload["filter"] = odata_filter
 
-    r = requests.post(url, headers=headers, json=payload, timeout=10)
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=12)
+    except RequestException as e:
+        raise HTTPException(502, f"Azure Search injoignable: {e}")
+
     if r.status_code >= 300:
-        txt = r.text or ""
-        # Repli doux si $select tombe sur un champ non reconnu
-        if "Could not find a property named" in txt or "Parameter name: $select" in txt:
-            payload.pop("select", None)
-            r2 = requests.post(url, headers=headers, json=payload, timeout=10)
-            if r2.status_code >= 300:
-                raise HTTPException(r2.status_code, f"Search error (finance): {r2.text}")
-            return r2.json().get("value", [])
-        raise HTTPException(r.status_code, f"Search error (finance): {txt}")
+        raise HTTPException(r.status_code, f"Search error (finance/mdm): {r.text}")
 
     return r.json().get("value", [])
