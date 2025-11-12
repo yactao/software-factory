@@ -8,7 +8,7 @@ router = APIRouter()
 @router.get("/api/sas")
 def get_sas(
     path: str,
-    ttl: int = Query(120, ge=1, le=60, description="Durée du SAS en minutes"),
+    ttl: int = Query(60, ge=1, le=60, description="Durée du SAS en minutes"),
     claims: dict = Depends(_auth_dependency),
 ):
     _require_scope(claims)
