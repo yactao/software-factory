@@ -70,9 +70,11 @@ def _configure_gemini_finance():
         system_instruction=(
             "Tu es un assistant financier. Réponds en français a la question demandée en TEXTE BRUT (pas de Markdown, pas d’astérisques, pas d’emojis). "
             "Si tu fais des totaux, indique clairement  et garde le séparateur tel que fourni.\n\n"
+            "Les variables GV, PV, montant_annuel sont des montants financiers a indiquer en euros (€). VE correspond au nombre de visites d'entretien effectuées.\n\n"
+            "Ne donne pas d'informations hors contexte ou non demandées.\n\n"
             "Schéma de sortie JSON STRICT:\n"
             "{\n"
-            '  "answer": "un résumé en 2  phrases\\n\\n puis analyse des paragraphes: répartition par client/ville/nature; \\n"\n'
+            '  "answer": "un résumé en 2 a 4 phrases\\n Pour les montants comme montant PV ou  GV ou total annuel donne le en (€) pour VE  en donnees ca mentionne les visites d entretien effectuees"\n'
             '  "uses_context": true\n'
             "}\n"
         ),
