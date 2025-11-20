@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_WEBAPP_NAME: "app-rag-its-new2"   # <- Nom de ta Web App
+  AZURE_WEBAPP_NAME: "app-rag-its-new2"   
   PYTHON_VERSION: "3.12"
 
 jobs:
