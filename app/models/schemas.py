@@ -9,6 +9,10 @@ class RAGRequest(BaseModel):
     top_k: Optional[int] = 8
     conversation_id: Optional[str] = None
 
+
+class FinanceRequest(BaseModel):
+    question: str
+    conversation_id: Optional[str] = None
 class FinanceQuery(BaseModel):
     query: str = ""
     ville: Optional[str] = None

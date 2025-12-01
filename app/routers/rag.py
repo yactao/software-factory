@@ -17,6 +17,8 @@ from ..utils.snippets import (
     _prefer_answer_or_focused_snippet,
 )
 from ..utils.query_refiner import _compose_search_query_from_history
+from ..services.agents_classif import decide_scope_with_kimi
+from ..services.agent_global_audit import answer_global_with_kimi
 
 router = APIRouter()
 SMALLTALK_RE = re.compile(r"^\s*(bonjour|bonsoir|salut|slt|hello|hi)\b", re.I)
@@ -91,6 +93,7 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
     if not question:
         raise HTTPException(400, "Question is empty.")
 
+    # 0) Enregistrement du message utilisateur (comme avant)
     conv_id = _save_chat_event(
         claims,
         req.conversation_id,
@@ -100,6 +103,7 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
         meta={"filters": req.filters, "top_k": req.top_k}
     )
 
+    # 0-bis) Small talk → réponse courte et sortie immédiate (inchangé)
     if SMALLTALK_RE.search(question):
         payload = {
             "answer": "Bonjour. Posez une question liée à vos documents pour que je puisse répondre.",
@@ -107,19 +111,55 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
             "used_docs": [],
             "conversation_id": conv_id,
         }
-        _save_chat_event(claims, conv_id, role="assistant", route="rag",
-                         message=payload["answer"], meta=payload)
+        _save_chat_event(
+            claims,
+            conv_id,
+            role="assistant",
+            route="rag",
+            message=payload["answer"],
+            meta=payload,
+        )
         return payload
 
+    # 0-ter) Décision de portée via Kimi: single_store / global / fallback
+    try:
+        scope, scope_reason = decide_scope_with_kimi(question)
+    except Exception:
+        scope, scope_reason = "fallback", "error"
+
+    # 0-quater) Si la question est globale, on bypasse toute la partie RAG Azure
+    if scope == "global":
+        # Agent global: envoie le PDF global à Kimi et récupère la réponse
+        answer_text, uses_context = answer_global_with_kimi(question)
+
+        resp_payload = {
+            "answer": answer_text,
+            "citations": [],       # pas de citations / used_docs dans ce mode
+            "used_docs": [],
+            "conversation_id": conv_id,
+            "images": [],
+        }
+
+        _save_chat_event(
+            claims,
+            conv_id,
+            role="assistant",
+            route="rag",
+            message=resp_payload["answer"],
+            meta={**resp_payload, "scope": scope, "scope_reason": scope_reason},
+        )
+        return resp_payload
+
+    # À partir d’ici: chemin normal RAG "single fiche" (ou fallback)
     # 1) Historique
     try:
         history_pairs = _get_last_qna_pairs(claims, conv_id, route="rag", max_pairs=3)
-        if history_pairs and history_pairs[-1].get("user","").strip() == question:
+        if history_pairs and history_pairs[-1].get("user", "").strip() == question:
             history_pairs = history_pairs[:-1]
     except Exception:
         history_pairs = []
 
-    # 2) Raffinement
+    # 2) Raffinement de la requête avec historique
     effective_question, refine_meta = _compose_search_query_from_history(question, history_pairs)
     try:
         _save_chat_event(
@@ -128,12 +168,19 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
             role="meta",
             route="meta",
             message="",
-            meta={"type": "query_refined", "original": question, "refined": effective_question, **refine_meta}
+            meta={
+                "type": "query_refined",
+                "original": question,
+                "refined": effective_question,
+                **refine_meta,
+                "scope": scope,
+                "scope_reason": scope_reason,
+            },
         )
     except Exception:
         pass
 
-    # 3) Search
+    # 3) Search Azure
     search_json = _search_docs(effective_question, req.filters, k=RETRIEVAL_K)
     hits = search_json.get("value", []) or []
     answers = search_json.get("@search.answers", []) or []
@@ -145,14 +192,21 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
             "used_docs": [],
             "conversation_id": conv_id,
         }
-        _save_chat_event(claims, conv_id, role="assistant", route="rag",
-                         message=payload["answer"], meta=payload)
+        _save_chat_event(
+            claims,
+            conv_id,
+            role="assistant",
+            route="rag",
+            message=payload["answer"],
+            meta={**payload, "scope": scope, "scope_reason": scope_reason},
+        )
         return payload
 
-    # 4) Contextes LLM
+    # 4) Construction des contextes LLM
     N = max(1, min(req.top_k or TOPN_MAX, TOPN_MAX))
     contexts: List[Dict[str, Any]] = []
 
+    # 4-a) Réponses directes (si answers Azure)
     if answers:
         try:
             answers_sorted = sorted(answers, key=lambda a: a.get("score", 0), reverse=True)
@@ -164,17 +218,23 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
             contexts.append({
                 "title": "Azure AI Search — Réponse",
                 "snippet": ans_text,
-                "meta": {"kind": "answer", "key": best_ans.get("key"), "score": best_ans.get("score")},
+                "meta": {
+                    "kind": "answer",
+                    "key": best_ans.get("key"),
+                    "score": best_ans.get("score"),
+                },
             })
 
+    # 4-b) Documents
     for d in hits[:N]:
         doc_title = _extract_title(d)
-        doc_path  = _extract_path(d)
+        doc_path = _extract_path(d)
         caps = d.get("@search.captions") or []
         cap_text = caps[0].get("text") if caps else ""
         snippet = (
             (cap_text + "\n" + (d.get("content") or ""))[:1800]
-            if cap_text else _prefer_answer_or_focused_snippet(effective_question, d)
+            if cap_text
+            else _prefer_answer_or_focused_snippet(effective_question, d)
         )
         contexts.append({
             "title": doc_title,
@@ -187,16 +247,17 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
             },
         })
 
-    # 5) Synthèse texte
+    # 5) Synthèse texte (RAG single fiche, via Kimi maintenant)
     answer_text, uses_context, used_list = _synthesize_with_citations(
         question=question,
         contexts=contexts,
-        chat_history_pairs=history_pairs
+        chat_history_pairs=history_pairs,
     )
 
     def _is_doc_context(c: Dict[str, Any]) -> bool:
         return c.get("meta", {}).get("kind") != "answer"
 
+    # 5-bis) Construction des used_docs
     if used_list:
         selected = []
         for i in used_list:
@@ -212,18 +273,16 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
     else:
         used_docs = []
 
-    # 6) Extraction images ciblées magasin
+    # 6) Extraction d’images ciblées magasin (inchangé)
     name_hint, code_hint = _extract_store_hints(question)
     images: List[str] = []
     if name_hint or code_hint:
-        # Limite d'images renvoyées (par défaut N, sinon 30)
         img_limit = max(1, min(req.top_k or 30, 200))
         images = _gather_images_for_store(hits, name_hint, code_hint, img_limit)
 
     # 7) Payload final
     final_answer = answer_text
     if images:
-        # enrichir la réponse pour clarifier
         label = ""
         if code_hint and name_hint:
             label = f" pour « {name_hint} » (code {code_hint})"
@@ -238,12 +297,21 @@ def rag(req: RAGRequest, claims: Dict[str, Any] = Depends(_auth_dependency)):
         "citations": [],
         "used_docs": used_docs,
         "conversation_id": conv_id,
-        "images": images,  
+        "images": images,
     }
 
     _save_chat_event(
-        claims, conv_id, role="assistant", route="rag",
+        claims,
+        conv_id,
+        role="assistant",
+        route="rag",
         message=resp_payload["answer"],
-        meta={**resp_payload, "refined_query": effective_question, **refine_meta}
+        meta={
+            **resp_payload,
+            "refined_query": effective_question,
+            **refine_meta,
+            "scope": scope,
+            "scope_reason": scope_reason,
+        },
     )
     return resp_payload

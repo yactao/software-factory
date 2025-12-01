@@ -1,75 +1,129 @@
-import json, time, random
-from typing import List, Dict, Any, Tuple, Optional
-from fastapi import HTTPException
-from .gemini_base import _configure_gemini
-from ..core.config import GEMINI_RETRIES
-from ..utils.text_clean import _clean_model_text
+import json
+from typing import List, Dict, Any, Tuple
+
+from app.core.config import KIMI_MODEL_SINGLE
+from app.services.kimi_client import kimi_chat_completion
 
 
 def _synthesize_with_citations(
     question: str,
     contexts: List[Dict[str, Any]],
-    chat_history_pairs: Optional[List[Dict[str, str]]] = None,
+    chat_history_pairs: List[Dict[str, str]],
 ) -> Tuple[str, bool, List[int]]:
     """
-    Version enrichie:
-      - 'chat_history_pairs' contient jusqu'à 3 couples complets {"user","assistant"} de la même conversation.
-      - L'historique est fourni au modèle DANS UNE SECTION DISTINCTE, à utiliser uniquement pour la continuité,
-        JAMAIS comme source d'autorité. Les FAITS doivent venir des SOURCES.
+    Synthèse RAG via Kimi (single fiche).
+    Retourne (answer_text, uses_context, used_sources_indices)
+    où used_sources_indices sont des indices 1-based dans contexts.
     """
-    try:
-        model = _configure_gemini()
-    except HTTPException:
-        raise
-    except Exception as e:
-        return (f"Synthèse indisponible. Erreur de configuration Gemini: {e}", False, [])
 
-    # Construire le bloc SOURCES numérotées (1..N)
-    src_block: List[str] = []
-    for i, c in enumerate(contexts, 1):
-        title = c.get("title") or (c.get("meta", {}) or {}).get("path") or f"Source {i}"
-        snippet = (c.get("snippet") or "")  # on n’écourte pas: on laisse tel quel
-        src_block.append(f"[{i}] {title}\n{snippet}")
+    if not contexts:
+        return (
+            "Je ne trouve pas d'informations suffisantes dans les documents pour répondre précisément.",
+            False,
+            [],
+        )
 
-    # Construire le bloc HISTORIQUE strict (jusqu’à 3 couples complets U/A)
-    hist_block = ""
-    if chat_history_pairs:
-        lines = ["HISTORIQUE DES 3 DERNIERS ECHANGES (NE PAS CONSIDERER COMME SOURCE D'AUTORITE)"]
-        lines.append("Utilisation: uniquement pour la continuité (pronoms, ellipses). Les FAITS doivent provenir des SOURCES ci-dessous.")
-        for idx, pair in enumerate(chat_history_pairs, 1):
-            u = pair.get("user","")
-            a = pair.get("assistant","")
-            lines.append(f"--- PAIRE {idx} ---")
-            lines.append(f"U: {u}")
-            lines.append(f"A: {a}")
-        hist_block = "\n".join(lines) + "\n\n"
+    # 1) SOURCES numérotées 1..N
+    sources_block_lines = []
+    for idx, c in enumerate(contexts, start=1):
+        title = c.get("title") or f"Source {idx}"
+        snippet = c.get("snippet") or ""
+        sources_block_lines.append(f"[{idx}] {title}\n{snippet}")
+    sources_block = "\n\n".join(sources_block_lines)
 
-    # Message utilisateur final: HISTORIQUE (si présent) puis QUESTION puis SOURCES
-    user_msg = (
-        (hist_block if hist_block else "") +
-        f"QUESTION:\n{question}\n\n" +
-        "SOURCES (les faits DOIVENT venir d'ici; ignorer l'historique en cas de contradiction):\n" +
-        "\n\n".join(src_block)
+    # 2) Historique
+    hist_lines = []
+    for pair in chat_history_pairs[-3:]:
+        u = pair.get("user", "").strip()
+        a = pair.get("assistant", "").strip()
+        if u:
+            hist_lines.append(f"U: {u}")
+        if a:
+            hist_lines.append(f"A: {a}")
+    history_text = "\n".join(hist_lines)
+
+    # 3) Prompt système Kimi
+    system_prompt = (
+        "Tu es un assistant d'entreprise pour un système RAG basé sur des fiches d'audit.\n"
+        "Tu dois répondre EXCLUSIVEMENT à partir des SOURCES fournies.\n"
+        "Si une information ne figure pas dans les sources, dis-le et n'invente rien.\n\n"
+        "Langue: réponds dans la langue de la question.\n\n"
+        "Format de sortie STRICTEMENT en JSON valide UTF-8, sans texte avant ni après.\n"
+        "Les booléens doivent être true ou false sans guillemets.\n"
+        "Exemple de structure attendue:\n"
+        "{\n"
+        '  \"answer\": \"texte de la réponse\",\n'
+        '  \"uses_context\": true,\n'
+        '  \"used_sources\": [1, 2, 3]\n'
+        "}\n"
     )
 
-    # Appel modèle avec backoff simple
-    for attempt in range(max(1, GEMINI_RETRIES)):
+    # 4) Prompt utilisateur
+    user_prompt = (
+        "QUESTION UTILISATEUR:\n"
+        f"{question}\n\n"
+        "DERNIER CONTEXTE DE CONVERSATION (optionnel):\n"
+        f"{history_text}\n\n"
+        "SOURCES DISPONIBLES:\n"
+        f"{sources_block}\n\n"
+        "Réponds en JSON conforme au schéma demandé."
+    )
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    # 5) Appel Kimi + parsing robuste
+    try:
+        raw = kimi_chat_completion(
+            messages,
+            model=KIMI_MODEL_SINGLE,
+            temperature=0.1,
+            max_tokens=1100,
+        )
+        raw_str = (raw or "").strip()
+
+        # Tentative 1: JSON direct
         try:
-            resp = model.generate_content([{"role": "user", "parts": [{"text": user_msg}]}])
-            txt = (resp.text or "").strip()
-            try:
-                obj = json.loads(txt)
-                answer = _clean_model_text(str(obj.get("answer", "")).strip() or "Réponse vide.")
-                uses_context = bool(obj.get("uses_context", False))
-                used_sources = obj.get("used_sources") or []
-                used_sources = [int(x) for x in used_sources if isinstance(x, (int, str)) and str(x).isdigit()]
-                return (answer, uses_context, used_sources)
-            except Exception:
-                # Fallback texte brut
-                txt = _clean_model_text(txt or "Synthèse indisponible.")
-                return (txt, False, [])
+            obj = json.loads(raw_str)
         except Exception:
-            if attempt < GEMINI_RETRIES - 1:
-                time.sleep((2 ** attempt) + random.random())
-                continue
-            return ("Synthèse indisponible (Gemini).", False, [])
+            # Tentative 2: extraire le bloc { ... } s'il y a du bruit autour
+            start = raw_str.find("{")
+            end = raw_str.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    obj = json.loads(raw_str[start : end + 1])
+                except Exception:
+                    # Tentative 3: fallback texte brut sans citations
+                    return raw_str, True, []
+            else:
+                # Pas de JSON exploitable → on renvoie le texte brut
+                return raw_str, True, []
+
+    except Exception as e:
+        # Vrai problème réseau / API → message d'erreur
+        return (
+            f"Synthèse indisponible pour le moment. Détails: {e}",
+            False,
+            [],
+        )
+
+    # 6) Extraction des champs
+    answer = (obj.get("answer") or "").strip()
+    uses_context = bool(obj.get("uses_context", True))
+    used_sources = obj.get("used_sources") or []
+
+    used_indices: List[int] = []
+    for i in used_sources:
+        try:
+            i_int = int(i)
+        except Exception:
+            continue
+        if 1 <= i_int <= len(contexts):
+            used_indices.append(i_int)
+
+    if not answer:
+        answer = "Réponse vide."
+
+    return answer, uses_context, used_indices

@@ -9,11 +9,13 @@ from app.routers.chat import router as chat_router
 from app.routers.rag import router as rag_router
 from app.routers.trading import router as trading_router
 from app.routers.finance import router as finance_router
+from app.routers.aina_finance import router as finance_aina_router
 from app.routers.websearch import router as websearch_router
 from app.routers.vision import router as vision_router
 from app.routers.vision_sas import router as vision_sas_router
 from app.routers.vision_cleanup import router as vision_cleanup_router
 from app.routers.vision_attach import router as vision_attach_router
+from app.routers.vision_plaque import router as vision_plaque_router
 
 # Mount routers
 app.include_router(health_router)
@@ -28,7 +30,8 @@ app.include_router(vision_router)
 app.include_router(vision_sas_router)
 app.include_router(vision_cleanup_router)
 app.include_router(vision_attach_router)
-
+app.include_router(vision_plaque_router)
+app.include_router(finance_aina_router)
 
 # Startup checks (inchangés)
 @app.on_event("startup")

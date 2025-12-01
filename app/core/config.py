@@ -78,6 +78,49 @@ CV_PROJECT_ID = os.environ.get("CV_PROJECT_ID", "")
 CV_PUBLISHED_NAME = os.environ.get("CV_PUBLISHED_NAME", "")
 CV_MIN_CONFIDENCE = float(os.environ.get("CV_MIN_CONFIDENCE", 0.6))
 
+
+
+# === Plaque OCR / GPT ===
+PLAQUE_AZURE_OCR_ENDPOINT = os.getenv("PLAQUE_AZURE_OCR_ENDPOINT", "").strip()
+PLAQUE_AZURE_OCR_KEY = os.getenv("PLAQUE_AZURE_OCR_KEY", "").strip()
+PLAQUE_AZURE_OCR_MODEL_ID = os.getenv("PLAQUE_AZURE_OCR_MODEL_ID", "prebuilt-read").strip()
+
+PLAQUE_AZURE_OAI_ENDPOINT = os.getenv("PLAQUE_AZURE_OAI_ENDPOINT", AZURE_OAI_ENDPOINT).strip()
+PLAQUE_AZURE_OAI_KEY = os.getenv("PLAQUE_AZURE_OAI_KEY", AZURE_OAI_KEY).strip()
+PLAQUE_AZURE_OAI_DEPLOYMENT = os.getenv("PLAQUE_AZURE_OAI_DEPLOYMENT", AZURE_OAI_DEPLOYMENT).strip()
+PLAQUE_AZURE_OAI_API_VERSION = os.getenv("PLAQUE_AZURE_OAI_API_VERSION", "2024-07-01-preview").strip()
+
+PLAQUE_METADATA_FILE = os.getenv("PLAQUE_METADATA_FILE", "Resultats/metadata.csv")
+
+PLAQUE_TENANT_ID = os.getenv("PLAQUE_TENANT_ID", TENANT_ID).strip()
+PLAQUE_CLIENT_ID = os.getenv("PLAQUE_CLIENT_ID", "").strip()
+PLAQUE_CLIENT_SECRET = os.getenv("PLAQUE_CLIENT_SECRET", "").strip()
+PLAQUE_SHAREPOINT_DOMAIN = os.getenv("PLAQUE_SHAREPOINT_DOMAIN", "").strip()
+PLAQUE_SHAREPOINT_SITE_PATH = os.getenv("PLAQUE_SHAREPOINT_SITE_PATH", "").strip()
+PLAQUE_SHAREPOINT_DRIVE_NAME = os.getenv("PLAQUE_SHAREPOINT_DRIVE_NAME", "Documents").strip()
+
+PLAQUE_CLIENT_NAME = os.getenv("PLAQUE_CLIENT_NAME", "Cultura")
+
+
+MOONSHOT_API_KEY = os.getenv("MOONSHOT_API_KEY", "")
+
+# Modèle Kimi utilisé pour RAG "single fiche" (synthèse RAG classique)
+KIMI_MODEL_SINGLE = os.getenv("KIMI_MODEL_SINGLE", "kimi-k2-turbo-preview")
+
+# Modèle Kimi utilisé pour le cas "global PDF"
+KIMI_MODEL_GLOBAL = os.getenv("KIMI_MODEL_GLOBAL", "kimi-k2-turbo-preview")
+
+# PDF global (toutes fiches d’audit) stocké sur Azure Blob
+GLOBAL_AUDIT_CONTAINER = os.getenv("GLOBAL_AUDIT_CONTAINER", "audit-global")
+GLOBAL_AUDIT_BLOB_PATH = os.getenv(
+    "GLOBAL_AUDIT_BLOB_PATH", 
+    "all_fiches_audit.pdf"  # le blob path dans le container
+)
+
+# Aïna Finance
+FINANCE_CONTAINER = os.getenv("FINANCE_CONTAINER", "audit-global")
+FINANCE_BLOB_PATH = os.getenv("FINANCE_BLOB_PATH", "audit-magasin.xlsx")
+
 # === CORS util ===
 def _parse_origins(env_value: str) -> list[str]:
     if not env_value:

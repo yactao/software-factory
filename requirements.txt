@@ -15,3 +15,11 @@ openai>=1.40.0
 azure-cognitiveservices-vision-customvision
 msrest
 PyJWT[crypto]==2.9.0
+
+numpy
+opencv-python
+pandas
+pytesseract
+pillow-heif
+
+openpyxl
