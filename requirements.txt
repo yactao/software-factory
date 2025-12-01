@@ -17,9 +17,10 @@ msrest
 PyJWT[crypto]==2.9.0
 
 numpy
-opencv-python
 pandas
 pytesseract
 pillow-heif
+opencv-python-headless==4.10.0.84
+
 
 openpyxl
