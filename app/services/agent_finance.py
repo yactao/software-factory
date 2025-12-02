@@ -1,6 +1,7 @@
 # app/services/agent_finance.py
 
 import json
+from datetime import date, datetime
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -11,16 +12,53 @@ from app.services.kimi_client import get_kimi_client
 from app.services.blob_finance_excel import download_finance_excel_to_temp
 
 
+def _normalize_chart_axes(chart: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    S'assure que pour les graphiques bar/line horizontaux ou verticaux, on a :
+      - x : catégorie (str, ex: nom du magasin)
+      - y : valeur numérique (int/float)
+
+    Si le LLM a inversé (x = nombre, y = nom magasin), on swap pour chaque série.
+    """
+
+    if not chart:
+        return chart
+
+    ctype = chart.get("type")
+    if ctype not in ("bar", "horizontal_bar", "line", "bubble"):
+        # On laisse tel quel pour les autres types (pie, none, etc.)
+        return chart
+
+    series = chart.get("series") or []
+    for serie in series:
+        points = serie.get("points") or []
+        if not points:
+            continue
+
+        # On regarde si la majorité des points ont x numérique et y string
+        num_x = sum(isinstance(p.get("x"), (int, float)) for p in points)
+        str_y = sum(isinstance(p.get("y"), str) for p in points)
+
+        if num_x >= len(points) / 2 and str_y >= len(points) / 2:
+            # Cas typique : { "x": 2060, "y": "IDF - PARIS ..." }
+            # On inverse x et y pour toute la série
+            for p in points:
+                p["x"], p["y"] = p.get("y"), p.get("x")
+
+    return chart
+
+
 def answer_finance_with_kimi(
     question: str,
     history_pairs: List[Dict[str, str]],
-) -> Tuple[str, Dict[str, Any]]:
+) -> Tuple[str, Dict[str, Any], List[Dict[str, Any]]]:
     """
     Analyse le fichier Excel finance avec Kimi.
 
     Retourne:
       - answer_text: réponse en texte brut
       - chart: dict décrivant le graphique à afficher côté frontend
+      - excerpt_rows: liste de lignes (dict) extraites du DataFrame, pour affichage dans le frontend
     """
 
     q = (question or "").strip()
@@ -31,7 +69,10 @@ def answer_finance_with_kimi(
     try:
         xlsx_path = download_finance_excel_to_temp()
     except Exception as e:
-        raise HTTPException(500, f"Erreur lors du chargement du fichier Excel finance: {e}")
+        raise HTTPException(
+            500,
+            f"Erreur lors du chargement du fichier Excel finance: {e}",
+        )
 
     # 2) Charger l'Excel côté backend (pandas)
     try:
@@ -51,7 +92,7 @@ def answer_finance_with_kimi(
     data_json = json.dumps(records, ensure_ascii=False)
 
     # On ajoute aussi la liste des colonnes pour que le modèle comprenne bien
-    columns_info = []
+    columns_info: List[Dict[str, Any]] = []
     for col in df_llm.columns:
         col_type = str(df_llm[col].dtype)
         columns_info.append({"name": col, "dtype": col_type})
@@ -79,13 +120,14 @@ def answer_finance_with_kimi(
         "  GV: montant en euros d'une grande visite (visite de maintenance plus lourde)\n"
         "  VE: nombre de visites d'entretien annuelles\n"
         "D'autres colonnes peuvent exister, tu dois les interpréter logiquement.\n\n"
-        "Chaque magasin peut avoir jusqu'à 3 pv differents ou identiques.\n\n"
+        "Chaque magasin peut avoir jusqu'à 3 pv différents ou identiques.\n\n"
         "Règles importantes:\n"
         "  1) Tu réponds STRICTEMENT à partir des données de la table fournie.\n"
         "  2) Si une information n'est pas présente ou pas déductible, tu le dis clairement.\n"
         "  3) Tu peux faire des calculs simples (somme, moyenne, max, min, classement, comparaison) sur les colonnes numériques.\n"
         "  4) Les montants financiers sont en euros (€).\n"
         "  5) VE représente le nombre de visites effectuées, tu peux en déduire des coûts annuels PV*VE, GV*VE, etc. si c'est cohérent.\n\n"
+        " 6) Tres important que le y genere soit toujours un nombre (int ou float) pour les graphiques bar/line.\n\n"
         "Tu dois répondre comme un expert finance qui commente les chiffres et explique les résultats.\n\n"
         "Format de sortie STRICTEMENT en JSON valide, sans texte avant ni après.\n"
         "Schéma attendu:\n"
@@ -106,14 +148,24 @@ def answer_finance_with_kimi(
         '        ]\n'
         '      }\n'
         '    ]\n'
-        '  }\n'
+        '  },\n'
+        '  \"table_excerpt\": {\n'
+        '    \"row_indices\": [0, 2, 5],\n'
+        '    \"columns\": [\"magasin\", \"code_magasin\", \"dept\", \"ve_an\", \"montant_annuel\", \"gv\", \"pv\"]\n'
+        "  }\n"
         "}\n\n"
         "Consignes pour le champ chart:\n"
         "  - Si la question se prête à un graphique (comparaison entre magasins, évolution, répartition…), propose un type pertinent.\n"
         "  - Si aucun graphique n'est utile, mets \"type\": \"none\" et une liste de séries vide.\n"
         "  - Ne renvoie QUE des points basés sur les données fournies.\n"
-        "  - Pour les labels X, utilise typiquement le nom du magasin ou le code département ou la valeur convenable .\n"
-        "  - Pour le choix de type de graphique tu dois choisir un type adapté à la question.\n"
+        "  - Pour les labels X, utilise typiquement le nom du magasin ou le code département ou la valeur convenable.\n"
+        "  - Pour le choix de type de graphique tu dois choisir un type adapté à la question.\n\n"
+        "Consignes pour le champ table_excerpt:\n"
+        "  - \"row_indices\" doit contenir une petite liste d'indices de lignes (0, 1, 2, ...) parmi les lignes de la table envoyée.\n"
+        "  - Utilise uniquement des indices valides présents dans les données.\n"
+        "  - \"columns\" doit contenir les noms EXACTS de toutes les colonnes de la table même ceux non utilisés en contexte "
+        "(par exemple magasin, code_magasin, dept, ve_an, montant_annuel, gv, pv1, pv2, pv3).\n"
+        "  - Si tu ne sais pas quelles lignes mettre, laisse row_indices vide.\n"
     )
 
     # 5) Prompt utilisateur avec les données JSON
@@ -132,14 +184,8 @@ def answer_finance_with_kimi(
     client = get_kimi_client()
 
     messages = [
-        {
-            "role": "system",
-            "content": system_content,
-        },
-        {
-            "role": "user",
-            "content": user_prompt,
-        },
+        {"role": "system", "content": system_content},
+        {"role": "user", "content": user_prompt},
     ]
 
     try:
@@ -154,6 +200,7 @@ def answer_finance_with_kimi(
 
     msg = completion.choices[0].message
 
+    # Gestion du contenu renvoyé (string ou segments)
     if isinstance(msg.content, str):
         raw_text = msg.content
     else:
@@ -177,9 +224,15 @@ def answer_finance_with_kimi(
             try:
                 obj = json.loads(raw_text[start : end + 1])
             except Exception:
-                raise HTTPException(500, f"Réponse Kimi finance non JSON: {raw_text[:400]}")
+                raise HTTPException(
+                    500,
+                    f"Réponse Kimi finance non JSON: {raw_text[:400]}",
+                )
         else:
-            raise HTTPException(500, f"Réponse Kimi finance non JSON: {raw_text[:400]}")
+            raise HTTPException(
+                500,
+                f"Réponse Kimi finance non JSON: {raw_text[:400]}",
+            )
 
     answer = (obj.get("answer") or "").strip()
     if not answer:
@@ -193,4 +246,54 @@ def answer_finance_with_kimi(
         "series": [],
     }
 
-    return answer, chart
+    # 🔧 Normalisation de sécurité : corrige les inversions x / y
+    chart = _normalize_chart_axes(chart)
+
+    # === Extraction des lignes/colonnes utilisées pour le frontend ===
+    table_excerpt = obj.get("table_excerpt") or {}
+    raw_indices = table_excerpt.get("row_indices") or []
+    raw_columns = table_excerpt.get("columns") or []
+
+    # Sécuriser les indices
+    max_index = len(df_llm)
+    row_indices: List[int] = []
+    for i in raw_indices:
+        try:
+            i_int = int(i)
+        except Exception:
+            continue
+        if 0 <= i_int < max_index:
+            row_indices.append(i_int)
+
+    # Sécuriser les colonnes : toujours TOUTES les colonnes, en mettant
+    # d'abord celles demandées par Kimi si elles existent.
+    if raw_columns:
+        cols: List[str] = [c for c in raw_columns if c in df_llm.columns]
+        for c in df_llm.columns:
+            if c not in cols:
+                cols.append(c)
+    else:
+        cols = list(df_llm.columns)
+
+    def _serialize_value(v: Any) -> Any:
+        """Convertit les valeurs Pandas/Datetime en types JSON-compatibles."""
+        if isinstance(v, (pd.Timestamp, datetime, date)):
+            return v.isoformat()
+        if isinstance(v, float) and pd.isna(v):
+            return None
+        if pd.isna(v):
+            return None
+        return v
+
+    excerpt_rows: List[Dict[str, Any]] = []
+    for idx in row_indices:
+        row_dict: Dict[str, Any] = {}
+        for col in cols:
+            try:
+                value = df_llm.iloc[idx][col]
+            except Exception:
+                value = None
+            row_dict[col] = _serialize_value(value)
+        excerpt_rows.append(row_dict)
+
+    return answer, chart, excerpt_rows
