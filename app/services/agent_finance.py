@@ -89,6 +89,16 @@ def answer_finance_with_kimi(
     MAX_ROWS_FOR_LLM = 200
     df_llm = df.head(MAX_ROWS_FOR_LLM).copy()
 
+    # Infos sur le nombre de lignes pour guider Kimi sur les indices valides
+    nb_rows = len(df_llm)
+    row_indices_hint = (
+        f"Tu disposes de {nb_rows} lignes indexées de 0 à {nb_rows - 1}. "
+        "Les seuls indices valides pour table_excerpt.row_indices sont donc "
+        f"[0, 1, ..., {nb_rows - 1}]. "
+        "Si tu ne sais pas quelles lignes choisir, utilise par défaut les indices "
+        "[0, 1, 2, 3, 4] si ces lignes existent."
+    )
+
     # Conversion en JSON (liste de lignes)
     records = df_llm.to_dict(orient="records")
     data_json = json.dumps(records, ensure_ascii=False)
@@ -114,7 +124,7 @@ def answer_finance_with_kimi(
 
     # 4) Prompt système orienté data/finance
     system_content = (
-        "Tu es un expert data analyst et finance pour le client MDM (Maisons du Monde).\n"
+        "Tu es un expert data analyst et finance pour un client de la grande distribution.\n"
         "Tu disposes d'une table de magasins issue d'un fichier Excel avec des colonnes, par exemple:\n"
         "  magasin: nom du magasin\n"
         "  dept: code du département\n"
@@ -122,14 +132,16 @@ def answer_finance_with_kimi(
         "  GV: montant en euros d'une grande visite (visite de maintenance plus lourde)\n"
         "  VE: nombre de visites d'entretien annuelles\n"
         "D'autres colonnes peuvent exister, tu dois les interpréter logiquement.\n\n"
-        "Chaque magasin peut avoir jusqu'à 3 pv différents ou identiques.\n\n"
+        "Chaque magasin peut avoir jusqu'à 3 PV différents ou identiques.\n\n"
         "Règles importantes:\n"
         "  1) Tu réponds STRICTEMENT à partir des données de la table fournie.\n"
         "  2) Si une information n'est pas présente ou pas déductible, tu le dis clairement.\n"
-        "  3) Tu peux faire des calculs simples (somme, moyenne, max, min, classement, comparaison) sur les colonnes numériques.\n"
+        "  3) Tu peux faire des calculs simples (somme, moyenne, max, min, classement, comparaison) "
+        "sur les colonnes numériques.\n"
         "  4) Les montants financiers sont en euros (€).\n"
-        "  5) VE représente le nombre de visites effectuées, tu peux en déduire des coûts annuels PV*VE, GV*VE, etc. si c'est cohérent.\n\n"
-        " 6) Tres important que le y genere soit toujours un nombre (int ou float) pour les graphiques bar/line.\n\n"
+        "  5) VE représente le nombre de visites effectuées, tu peux en déduire des coûts annuels "
+        "PV*VE, GV*VE, etc. si c'est cohérent.\n\n"
+        "  6) Très important que le champ y généré soit toujours un nombre (int ou float) pour les graphiques bar et line.\n\n"
         "Tu dois répondre comme un expert finance qui commente les chiffres et explique les résultats.\n\n"
         "Format de sortie STRICTEMENT en JSON valide, sans texte avant ni après.\n"
         "Schéma attendu:\n"
@@ -157,17 +169,24 @@ def answer_finance_with_kimi(
         "  }\n"
         "}\n\n"
         "Consignes pour le champ chart:\n"
-        "  - Si la question se prête à un graphique (comparaison entre magasins, évolution, répartition…), propose un type pertinent.\n"
+        "  - Si la question se prête à un graphique (comparaison entre magasins, évolution, répartition), "
+        "propose un type pertinent.\n"
         "  - Si aucun graphique n'est utile, mets \"type\": \"none\" et une liste de séries vide.\n"
         "  - Ne renvoie QUE des points basés sur les données fournies.\n"
         "  - Pour les labels X, utilise typiquement le nom du magasin ou le code département ou la valeur convenable.\n"
         "  - Pour le choix de type de graphique tu dois choisir un type adapté à la question.\n\n"
         "Consignes pour le champ table_excerpt:\n"
-        "  - \"row_indices\" doit contenir une petite liste d'indices de lignes (0, 1, 2, ...) parmi les lignes de la table envoyée.\n"
-        "  - Utilise uniquement des indices valides présents dans les données.\n"
-        "  - \"columns\" doit contenir les noms EXACTS de toutes les colonnes de la table même ceux non utilisés en contexte "
-        "(par exemple magasin, code_magasin, dept, ve_an, montant_annuel, gv, pv1, pv2, pv3).\n"
-        "  - Si tu ne sais pas quelles lignes mettre, laisse row_indices vide.\n"
+        "  - \"row_indices\" doit contenir une petite liste d'indices de lignes (0, 1, 2, ...) "
+        "parmi les lignes de la table envoyée.\n"
+        "  - Tu dois impérativement choisir des indices uniquement dans la plage d'indices valides "
+        "qui sera fournie dans le message utilisateur.\n"
+        "  - Si tu ne sais pas quelles lignes choisir, utilise par défaut les indices [0, 1, 2, 3, 4] "
+        "si ces lignes existent.\n"
+        "  - \"columns\" doit contenir les noms EXACTS de toutes les colonnes de la table, même "
+        "ceux non utilisés en contexte (par exemple magasin, code_magasin, dept, ve_an, montant_annuel, "
+        "gv, pv1, pv2, pv3).\n"
+        "  - Si tu ne sais vraiment pas quelles lignes mettre, tu peux laisser row_indices vide, "
+        "mais seulement en dernier recours.\n"
     )
 
     # 5) Prompt utilisateur avec les données JSON
@@ -180,6 +199,12 @@ def answer_finance_with_kimi(
         f"{columns_json}\n\n"
         "DONNEES DE LA TABLE (JSON, chaque élément est une ligne):\n"
         f"{data_json}\n\n"
+        "INFORMATION SUR LES INDICES DE LIGNES:\n"
+        f"{row_indices_hint}\n\n"
+        "IMPORTANT:\n"
+        "  - Les indices utilisés dans table_excerpt.row_indices doivent être uniquement pris "
+        "dans la plage décrite ci dessus.\n"
+        "  - Si tu ne sais pas, utilise par défaut les indices [0, 1, 2, 3, 4] si ces lignes existent.\n\n"
         "Analyse UNIQUEMENT ces données et réponds strictement au format JSON demandé.\n"
     )
 
