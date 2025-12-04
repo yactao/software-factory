@@ -77,6 +77,8 @@ def answer_finance_with_kimi(
     # 2) Charger l'Excel côté backend (pandas)
     try:
         df = pd.read_excel(xlsx_path)
+        # Nettoyage : suppression des lignes entièrement vides
+        df = df.dropna(how="all").reset_index(drop=True)
     except Exception as e:
         raise HTTPException(500, f"Erreur lecture Excel finance: {e}")
 
@@ -246,16 +248,17 @@ def answer_finance_with_kimi(
         "series": [],
     }
 
-    # 🔧 Normalisation de sécurité : corrige les inversions x / y
+    # Normalisation de sécurité : corrige les inversions x / y
     chart = _normalize_chart_axes(chart)
 
-    # === Extraction des lignes/colonnes utilisées pour le frontend ===
+    # === Extraction des lignes et colonnes pour le frontend ===
     table_excerpt = obj.get("table_excerpt") or {}
     raw_indices = table_excerpt.get("row_indices") or []
     raw_columns = table_excerpt.get("columns") or []
 
-    # Sécuriser les indices
     max_index = len(df_llm)
+
+    # Sécuriser les indices
     row_indices: List[int] = []
     for i in raw_indices:
         try:
@@ -265,9 +268,12 @@ def answer_finance_with_kimi(
         if 0 <= i_int < max_index:
             row_indices.append(i_int)
 
-    # Sécuriser les colonnes : toujours TOUTES les colonnes, en mettant
-    # d'abord celles demandées par Kimi si elles existent.
-    if raw_columns:
+    # Fallback : si aucun indice valide, on prend les 5 premières lignes
+    if not row_indices and max_index > 0:
+        row_indices = list(range(min(5, max_index)))
+
+    # Sécuriser les colonnes
+    if isinstance(raw_columns, list) and raw_columns:
         cols: List[str] = [c for c in raw_columns if c in df_llm.columns]
         for c in df_llm.columns:
             if c not in cols:
@@ -276,7 +282,7 @@ def answer_finance_with_kimi(
         cols = list(df_llm.columns)
 
     def _serialize_value(v: Any) -> Any:
-        """Convertit les valeurs Pandas/Datetime en types JSON-compatibles."""
+        """Convertit les valeurs Pandas ou Datetime en types JSON compatibles."""
         if isinstance(v, (pd.Timestamp, datetime, date)):
             return v.isoformat()
         if isinstance(v, float) and pd.isna(v):
