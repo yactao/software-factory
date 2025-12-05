@@ -69,3 +69,7 @@ class AnalyzeResponse(BaseModel):
     annotated_image_b64: Optional[str] = None
     meta: Dict[str, Any] = {}
     conversation_id: Optional[str] = None  
+    
+class VetFinanceRequest(BaseModel):
+    question: str
+    conversation_id: Optional[str] = None

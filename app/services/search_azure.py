@@ -56,7 +56,7 @@ def _search_docs(question: str, filters: Optional[Dict[str, Any]], k: int = RETR
     try:
         resp = requests.post(url, headers=headers, json=payload_simple, timeout=20)
     except RequestException as e:
-        raise HTTPException(502, f"Search unreachable: {e}")
+        raise HTTPException(502, f"Seaarch unreachable: {e}")
     # Si ça passe en simple, on retourne tout de suite
     if resp.status_code < 300:
         return resp.json()

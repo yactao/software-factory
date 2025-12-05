@@ -1,4 +1,3 @@
-# app/core/config.py
 import os, datetime, urllib.parse, time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -121,6 +120,15 @@ GLOBAL_AUDIT_BLOB_PATH = os.getenv(
 FINANCE_CONTAINER = os.getenv("FINANCE_CONTAINER", "audit-global")
 FINANCE_BLOB_PATH = os.getenv("FINANCE_BLOB_PATH", "audit-magasin.xlsx")
 
+VET_INDEX_NAME: str = os.getenv("VET_INDEX_NAME", "vet-knowledge-index")
+VET_RETRIEVAL_K: int = int(os.getenv("VET_RETRIEVAL_K", "5"))
+# Si tu as déjà KIMI_MODEL_SINGLE, on peut s’en servir comme fallback
+KIMI_MODEL_VET_DOC: str = os.getenv("KIMI_MODEL_VET_DOC", KIMI_MODEL_SINGLE)
+
+
+# Aïna Vet Finance
+VET_FINANCE_CONTAINER = os.getenv("VET_FINANCE_CONTAINER", "vet-finance")
+VET_FINANCE_BLOB_PATH = os.getenv("VET_FINANCE_BLOB_PATH", "vet_finance.ods")
 # === CORS util ===
 def _parse_origins(env_value: str) -> list[str]:
     if not env_value:
@@ -132,6 +140,7 @@ DEFAULT_ORIGINS = [
     "http://127.0.0.1:5173",
     "https://app-rag-climmag-prod.azurewebsites.net",
     "https://st4x2hamb3rger.z28.web.core.windows.net",
+    "https://stitsynchrag12732.z28.web.core.windows.net",
 ]
 origins = _parse_origins(os.getenv("FRONT_ORIGIN", "")) or DEFAULT_ORIGINS
 

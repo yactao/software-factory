@@ -25,7 +25,7 @@ def get_sas(
     if lower.endswith(".pdf"): candidates.append(p[:-4] + "docx")
     elif lower.endswith(".docx"): candidates.append(p[:-5] + "pdf")
 
-    containers = [CONTAINER] + ([CONTAINER_TRADING] if CONTAINER_TRADING and CONTAINER_TRADING != CONTAINER else [])
+    containers = [CONTAINER] + ["vet-docs"] + ([CONTAINER_TRADING] if CONTAINER_TRADING and CONTAINER_TRADING != CONTAINER else [])
 
     for c in containers:
         for cand in candidates:

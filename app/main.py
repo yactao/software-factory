@@ -16,6 +16,8 @@ from app.routers.vision_sas import router as vision_sas_router
 from app.routers.vision_cleanup import router as vision_cleanup_router
 from app.routers.vision_attach import router as vision_attach_router
 from app.routers.vision_plaque import router as vision_plaque_router
+from app.routers.vet_doc import router as vet_doc_router 
+from app.routers.aina_vet_finance import router as vet_finance_aina_router
 
 # Mount routers
 app.include_router(health_router)
@@ -32,6 +34,8 @@ app.include_router(vision_cleanup_router)
 app.include_router(vision_attach_router)
 app.include_router(vision_plaque_router)
 app.include_router(finance_aina_router)
+app.include_router(vet_doc_router)
+app.include_router(vet_finance_aina_router)
 
 # Startup checks (inchangés)
 @app.on_event("startup")
