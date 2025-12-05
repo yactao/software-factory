@@ -145,7 +145,7 @@ def answer_vet_finance_with_kimi(
         "Format de sortie strictement en JSON valide, sans texte avant ni après.\n"
         "Schéma attendu:\n"
         "{\n"
-        '  \"answer\": \"texte en français, 2 à 6 phrases, sans Markdown, sans emojis.\",\n'
+        '  \"answer\": \"texte en langue de question, 2 à 6 phrases, sans Markdown, sans emojis.\",\n'
         '  \"uses_context\": true ou false,\n'
         '  \"chart\": {\n'
         '    \"type\": \"bar\" | \"horizontal_bar\" | \"line\" | \"pie\" | \"bubble\" | \"none\",\n'
