@@ -4,6 +4,7 @@ import json
 from datetime import date, datetime
 from typing import Any, Dict, List, Tuple
 
+import numpy as np
 import pandas as pd
 from fastapi import HTTPException
 
@@ -14,11 +15,12 @@ from app.services.blob_finance_excel import download_finance_excel_to_temp
 
 def _normalize_chart_axes(chart: Dict[str, Any]) -> Dict[str, Any]:
     """
-    S'assure que pour les graphiques bar/line horizontaux ou verticaux, on a :
-      - x : catégorie (str, ex: nom du magasin)
-      - y : valeur numérique (int/float)
+    S'assure que pour les graphiques bar ou line horizontaux ou verticaux on a
+      x comme catégorie texte par exemple nom du magasin
+      y comme valeur numérique int ou float
 
-    Si le LLM a inversé (x = nombre, y = nom magasin), on swap pour chaque série.
+    Si le modèle a inversé par exemple x égal nombre et y égal nom de magasin
+    on inverse x et y pour chaque point de la série.
     """
 
     if not chart:
@@ -26,7 +28,6 @@ def _normalize_chart_axes(chart: Dict[str, Any]) -> Dict[str, Any]:
 
     ctype = chart.get("type")
     if ctype not in ("bar", "horizontal_bar", "line", "bubble"):
-        # On laisse tel quel pour les autres types (pie, none, etc.)
         return chart
 
     series = chart.get("series") or []
@@ -35,13 +36,10 @@ def _normalize_chart_axes(chart: Dict[str, Any]) -> Dict[str, Any]:
         if not points:
             continue
 
-        # On regarde si la majorité des points ont x numérique et y string
         num_x = sum(isinstance(p.get("x"), (int, float)) for p in points)
         str_y = sum(isinstance(p.get("y"), str) for p in points)
 
         if num_x >= len(points) / 2 and str_y >= len(points) / 2:
-            # Cas typique : { "x": 2060, "y": "IDF - PARIS ..." }
-            # On inverse x et y pour toute la série
             for p in points:
                 p["x"], p["y"] = p.get("y"), p.get("x")
 
@@ -55,17 +53,17 @@ def answer_finance_with_kimi(
     """
     Analyse le fichier Excel finance avec Kimi.
 
-    Retourne:
-      - answer_text: réponse en texte brut
-      - chart: dict décrivant le graphique à afficher côté frontend
-      - excerpt_rows: liste de lignes (dict) extraites du DataFrame, pour affichage dans le frontend
+    Retourne
+      answer_text: réponse en texte brut
+      chart: dict décrivant le graphique à afficher côté frontend
+      excerpt_rows: liste de lignes dict pour affichage dans le frontend
     """
 
     q = (question or "").strip()
     if not q:
         raise HTTPException(400, "Question vide.")
 
-    # 1) Télécharger l'Excel depuis Azure Blob
+    # 1 Télécharger l'Excel depuis Azure Blob
     try:
         xlsx_path = download_finance_excel_to_temp()
     except Exception as e:
@@ -74,10 +72,9 @@ def answer_finance_with_kimi(
             f"Erreur lors du chargement du fichier Excel finance: {e}",
         )
 
-    # 2) Charger l'Excel côté backend (pandas)
+    # 2 Charger l'Excel côté backend avec pandas
     try:
         df = pd.read_excel(xlsx_path)
-        # Nettoyage : suppression des lignes entièrement vides
         df = df.dropna(how="all").reset_index(drop=True)
     except Exception as e:
         raise HTTPException(500, f"Erreur lecture Excel finance: {e}")
@@ -85,11 +82,11 @@ def answer_finance_with_kimi(
     if df.empty:
         raise HTTPException(500, "Le fichier Excel finance est vide.")
 
-    # On limite le nombre de lignes envoyées au LLM pour éviter un prompt énorme
+    # On limite le nombre de lignes envoyées au LLM
     MAX_ROWS_FOR_LLM = 200
     df_llm = df.head(MAX_ROWS_FOR_LLM).copy()
 
-    # Infos sur le nombre de lignes pour guider Kimi sur les indices valides
+    # Infos sur les indices pour guider Kimi
     nb_rows = len(df_llm)
     row_indices_hint = (
         f"Tu disposes de {nb_rows} lignes indexées de 0 à {nb_rows - 1}. "
@@ -99,19 +96,18 @@ def answer_finance_with_kimi(
         "[0, 1, 2, 3, 4] si ces lignes existent."
     )
 
-    # Conversion en JSON (liste de lignes)
+    # Conversion en JSON liste de lignes
     records = df_llm.to_dict(orient="records")
     data_json = json.dumps(records, ensure_ascii=False)
 
-    # On ajoute aussi la liste des colonnes pour que le modèle comprenne bien
+    # Liste des colonnes avec type
     columns_info: List[Dict[str, Any]] = []
     for col in df_llm.columns:
         col_type = str(df_llm[col].dtype)
         columns_info.append({"name": col, "dtype": col_type})
-
     columns_json = json.dumps(columns_info, ensure_ascii=False)
 
-    # 3) Historique compact (comme pour /api/rag)
+    # 3 Historique compact
     hist_lines: List[str] = []
     for pair in history_pairs[-3:]:
         u = (pair.get("user") or "").strip()
@@ -122,29 +118,39 @@ def answer_finance_with_kimi(
             hist_lines.append(f"A: {a}")
     history_text = "\n".join(hist_lines) if hist_lines else "aucun historique pertinent."
 
-    # 4) Prompt système orienté data/finance
+    # 4 Prompt système orienté data et finance
     system_content = (
         "Tu es un expert data analyst et finance pour un client de la grande distribution.\n"
-        "Tu disposes d'une table de magasins issue d'un fichier Excel avec des colonnes, par exemple:\n"
+        "Tu disposes d'une table de magasins issue d'un fichier Excel avec des colonnes par exemple\n"
         "  magasin: nom du magasin\n"
+        "  code_magasin: identifiant du magasin\n"
         "  dept: code du département\n"
-        "  PV: montant en euros d'une petite visite (visite de maintenance préventive)\n"
-        "  GV: montant en euros d'une grande visite (visite de maintenance plus lourde)\n"
+        "  PV: montant en euros d'une petite visite de maintenance préventive\n"
+        "  GV: montant en euros d'une grande visite de maintenance plus lourde\n"
         "  VE: nombre de visites d'entretien annuelles\n"
-        "D'autres colonnes peuvent exister, tu dois les interpréter logiquement.\n\n"
-        "Chaque magasin peut avoir jusqu'à 3 PV différents ou identiques.\n\n"
-        "Règles importantes:\n"
-        "  1) Tu réponds STRICTEMENT à partir des données de la table fournie.\n"
-        "  2) Si une information n'est pas présente ou pas déductible, tu le dis clairement.\n"
-        "  3) Tu peux faire des calculs simples (somme, moyenne, max, min, classement, comparaison) "
+        "  cout_preventive: coût total de la maintenance préventive en euros\n"
+        "  cout_curative: coût total de la maintenance curative en euros\n"
+        "  cout_total: coût global préventive plus curative en euros\n"
+        "Dans certains fichiers la préventive et la curative peuvent être détaillées par magasin\n"
+        "avec des colonnes qui indiquent les coûts préventifs, les coûts curatifs et le total en euros.\n"
+        "D'autres colonnes peuvent exister tu dois les interpréter logiquement.\n\n"
+        "Chaque magasin peut avoir jusqu'à trois PV différents ou identiques.\n\n"
+        "Règles importantes\n"
+        "  1 Tu réponds strictement à partir des données de la table fournie.\n"
+        "  2 Si une information n'est pas présente ou pas déductible tu le dis clairement.\n"
+        "  3 Tu peux faire des calculs simples comme somme moyenne maximum minimum classement ou comparaison "
         "sur les colonnes numériques.\n"
-        "  4) Les montants financiers sont en euros (€).\n"
-        "  5) VE représente le nombre de visites effectuées, tu peux en déduire des coûts annuels "
-        "PV*VE, GV*VE, etc. si c'est cohérent.\n\n"
-        "  6) Très important que le champ y généré soit toujours un nombre (int ou float) pour les graphiques bar et line.\n\n"
+        "  4 Les montants financiers sont en euros.\n"
+        "  5 VE représente le nombre de visites effectuées tu peux en déduire des coûts annuels "
+        "PV multiplié par VE et GV multiplié par VE si c'est cohérent.\n"
+        "  6 Tu disposes aussi de colonnes de coûts préventifs curatifs et totaux par exemple cout_preventive "
+        "cout_curative et cout_total. Utilise ces colonnes pour analyser la répartition des coûts entre préventif "
+        "et curatif comparer les magasins identifier ceux dont la part curative est élevée ou commenter "
+        "l'efficacité de la maintenance.\n"
+        "  7 Le champ y généré doit toujours être un nombre entier ou flottant pour les graphiques bar et line.\n\n"
         "Tu dois répondre comme un expert finance qui commente les chiffres et explique les résultats.\n\n"
-        "Format de sortie STRICTEMENT en JSON valide, sans texte avant ni après.\n"
-        "Schéma attendu:\n"
+        "Format de sortie strictement en JSON valide sans texte avant ni après.\n"
+        "Schéma attendu\n"
         "{\n"
         '  \"answer\": \"texte en français, 2 à 6 phrases, sans Markdown, sans emojis.\",\n'
         '  \"uses_context\": true ou false,\n'
@@ -155,9 +161,9 @@ def answer_finance_with_kimi(
         '    \"y_label\": \"Nom de l\'axe Y\",\n'
         '    \"series\": [\n'
         '      {\n'
-        '        \"label\": \"nom de la série (ex: Coût annuel PV)\",\n'
+        '        \"label\": \"nom de la série par exemple Coût annuel préventif\",\n'
         '        \"points\": [\n'
-        '          { \"x\": \"valeur X (ex: nom du magasin ou code dept)\", \"y\": nombre },\n'
+        '          { \"x\": \"valeur X par exemple nom du magasin ou code département\", \"y\": nombre },\n'
         '          ...\n'
         '        ]\n'
         '      }\n'
@@ -165,47 +171,43 @@ def answer_finance_with_kimi(
         '  },\n'
         '  \"table_excerpt\": {\n'
         '    \"row_indices\": [0, 2, 5],\n'
-        '    \"columns\": [\"magasin\", \"code_magasin\", \"dept\", \"ve_an\", \"montant_annuel\", \"gv\", \"pv\"]\n'
+        '    \"columns\": [\"magasin\", \"code_magasin\", \"dept\", \"ve_an\", \"montant_annuel\", '
+        '\"gv\", \"pv1\", \"pv2\", \"pv3\", \"cout_preventive\", \"cout_curative\", \"cout_total\"]\n'
         "  }\n"
         "}\n\n"
-        "Consignes pour le champ chart:\n"
-        "  - Si la question se prête à un graphique (comparaison entre magasins, évolution, répartition), "
-        "propose un type pertinent.\n"
-        "  - Si aucun graphique n'est utile, mets \"type\": \"none\" et une liste de séries vide.\n"
-        "  - Ne renvoie QUE des points basés sur les données fournies.\n"
-        "  - Pour les labels X, utilise typiquement le nom du magasin ou le code département ou la valeur convenable.\n"
-        "  - Pour le choix de type de graphique tu dois choisir un type adapté à la question.\n\n"
-        "Consignes pour le champ table_excerpt:\n"
-        "  - \"row_indices\" doit contenir une petite liste d'indices de lignes (0, 1, 2, ...) "
-        "parmi les lignes de la table envoyée.\n"
-        "  - Tu dois impérativement choisir des indices uniquement dans la plage d'indices valides "
-        "qui sera fournie dans le message utilisateur.\n"
-        "  - Si tu ne sais pas quelles lignes choisir, utilise par défaut les indices [0, 1, 2, 3, 4] "
-        "si ces lignes existent.\n"
-        "  - \"columns\" doit contenir les noms EXACTS de toutes les colonnes de la table, même "
-        "ceux non utilisés en contexte (par exemple magasin, code_magasin, dept, ve_an, montant_annuel, "
-        "gv, pv1, pv2, pv3).\n"
-        "  - Si tu ne sais vraiment pas quelles lignes mettre, tu peux laisser row_indices vide, "
-        "mais seulement en dernier recours.\n"
+        "Consignes pour le champ chart\n"
+        "  Si la question se prête à un graphique par exemple comparaison entre magasins répartition des coûts "
+        "ou évolution choisis un type pertinent.\n"
+        "  Si aucun graphique n'est utile mets type égal à none et une liste de séries vide.\n"
+        "  Ne renvoie que des points basés sur les données fournies.\n"
+        "  Pour les labels X utilise typiquement le nom du magasin ou le code département ou une autre valeur adaptée.\n"
+        "  Choisis un type de graphique cohérent avec la question.\n\n"
+        "Consignes pour le champ table_excerpt\n"
+        "  row_indices doit contenir une petite liste d'indices de lignes parmi les lignes de la table envoyée.\n"
+        "  Tu dois impérativement choisir des indices uniquement dans la plage d'indices valides qui sera fournie.\n"
+        "  Si tu ne sais pas quelles lignes choisir utilise par défaut les indices [0, 1, 2, 3, 4] si ces lignes existent.\n"
+        "  columns doit contenir les noms exacts de toutes les colonnes de la table même celles non utilisées en contexte "
+        "par exemple magasin code_magasin dept ve_an montant_annuel gv pv1 pv2 pv3 cout_preventive cout_curative cout_total.\n"
+        "  Si tu ne sais vraiment pas quelles lignes mettre tu peux laisser row_indices vide mais seulement en dernier recours.\n"
     )
 
-    # 5) Prompt utilisateur avec les données JSON
+    # 5 Prompt utilisateur avec les données JSON
     user_prompt = (
-        "CONTEXTE CONVERSATION (résumé des derniers échanges):\n"
+        "CONTEXTE CONVERSATION résumé des derniers échanges\n"
         f"{history_text}\n\n"
-        "QUESTION UTILISATEUR:\n"
+        "QUESTION UTILISATEUR\n"
         f"{q}\n\n"
-        "SCHEMA DES COLONNES (nom + type):\n"
+        "SCHEMA DES COLONNES nom et type\n"
         f"{columns_json}\n\n"
-        "DONNEES DE LA TABLE (JSON, chaque élément est une ligne):\n"
+        "DONNEES DE LA TABLE JSON chaque élément est une ligne\n"
         f"{data_json}\n\n"
-        "INFORMATION SUR LES INDICES DE LIGNES:\n"
+        "INFORMATION SUR LES INDICES DE LIGNES\n"
         f"{row_indices_hint}\n\n"
-        "IMPORTANT:\n"
-        "  - Les indices utilisés dans table_excerpt.row_indices doivent être uniquement pris "
+        "IMPORTANT\n"
+        "  Les indices utilisés dans table_excerpt.row_indices doivent être uniquement pris "
         "dans la plage décrite ci dessus.\n"
-        "  - Si tu ne sais pas, utilise par défaut les indices [0, 1, 2, 3, 4] si ces lignes existent.\n\n"
-        "Analyse UNIQUEMENT ces données et réponds strictement au format JSON demandé.\n"
+        "  Si tu ne sais pas utilise par défaut les indices [0, 1, 2, 3, 4] si ces lignes existent.\n\n"
+        "Analyse uniquement ces données et réponds strictement au format JSON demandé.\n"
     )
 
     client = get_kimi_client()
@@ -220,14 +222,14 @@ def answer_finance_with_kimi(
             model=KIMI_MODEL_SINGLE,
             messages=messages,
             temperature=0.2,
-            max_tokens=1800,
+            max_tokens=2500,
         )
     except Exception as e:
-        raise HTTPException(500, f"Erreur Kimi (finance): {e}")
+        raise HTTPException(500, f"Erreur Kimi finance: {e}")
 
     msg = completion.choices[0].message
 
-    # Gestion du contenu renvoyé (string ou segments)
+    # Gestion du contenu renvoyé string ou segments
     if isinstance(msg.content, str):
         raw_text = msg.content
     else:
@@ -273,10 +275,9 @@ def answer_finance_with_kimi(
         "series": [],
     }
 
-    # Normalisation de sécurité : corrige les inversions x / y
     chart = _normalize_chart_axes(chart)
 
-    # === Extraction des lignes et colonnes pour le frontend ===
+    # Extraction des lignes et colonnes pour le frontend
     table_excerpt = obj.get("table_excerpt") or {}
     raw_indices = table_excerpt.get("row_indices") or []
     raw_columns = table_excerpt.get("columns") or []
@@ -293,7 +294,7 @@ def answer_finance_with_kimi(
         if 0 <= i_int < max_index:
             row_indices.append(i_int)
 
-    # Fallback : si aucun indice valide, on prend les 5 premières lignes
+    # Fallback indices par défaut
     if not row_indices and max_index > 0:
         row_indices = list(range(min(5, max_index)))
 
@@ -307,13 +308,26 @@ def answer_finance_with_kimi(
         cols = list(df_llm.columns)
 
     def _serialize_value(v: Any) -> Any:
-        """Convertit les valeurs Pandas ou Datetime en types JSON compatibles."""
+        """
+        Convertit les valeurs Pandas ou Datetime ou NumPy
+        en types compatibles JSON pour FastAPI.
+        """
         if isinstance(v, (pd.Timestamp, datetime, date)):
             return v.isoformat()
-        if isinstance(v, float) and pd.isna(v):
-            return None
-        if pd.isna(v):
-            return None
+
+        # Gestion des NaN et valeurs manquantes
+        try:
+            if isinstance(v, float) and pd.isna(v):
+                return None
+            if pd.isna(v):
+                return None
+        except TypeError:
+            pass
+
+        # Conversion des types NumPy en scalaires Python
+        if isinstance(v, (np.generic,)):
+            return v.item()
+
         return v
 
     excerpt_rows: List[Dict[str, Any]] = []
