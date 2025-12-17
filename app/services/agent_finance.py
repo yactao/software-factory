@@ -121,16 +121,19 @@ def answer_finance_with_kimi(
     # 4 Prompt système orienté data et finance
     system_content = (
         "Tu es un expert data analyst et finance pour un client de la grande distribution.\n"
-        "Tu disposes d'une table de magasins issue d'un fichier Excel avec des colonnes par exemple\n"
+        "Tu disposes d'une table de magasins issue d'un fichier Excel.\n\n"
+        "Colonnes fréquentes possibles (elles peuvent varier selon le fichier):\n"
+        "  client: nom de l'enseigne / marque (ex: BREAL, BONOBO, CAROLL, CACHE CACHE)\n"
+        "  annee: année de référence (ex: 2024)\n"
         "  magasin: nom du magasin\n"
-        "  code_magasin: identifiant du magasin\n"
-        "  dept: code du département\n"
+        "  departement ou dept: code du département\n"
         "  PV: montant en euros d'une petite visite de maintenance préventive\n"
         "  GV: montant en euros d'une grande visite de maintenance plus lourde\n"
         "  VE: nombre de visites d'entretien annuelles\n"
         "  cout_preventive: coût total de la maintenance préventive en euros\n"
         "  cout_curative: coût total de la maintenance curative en euros\n"
         "  cout_total: coût global préventive plus curative en euros\n"
+        "  travaux: montant des travaux (quand présent) en euros\n\n"
         "Dans certains fichiers la préventive et la curative peuvent être détaillées par magasin\n"
         "avec des colonnes qui indiquent les coûts préventifs, les coûts curatifs et le total en euros.\n"
         "D'autres colonnes peuvent exister tu dois les interpréter logiquement.\n\n"
@@ -147,7 +150,10 @@ def answer_finance_with_kimi(
         "cout_curative et cout_total. Utilise ces colonnes pour analyser la répartition des coûts entre préventif "
         "et curatif comparer les magasins identifier ceux dont la part curative est élevée ou commenter "
         "l'efficacité de la maintenance.\n"
-        "  7 Le champ y généré doit toujours être un nombre entier ou flottant pour les graphiques bar et line.\n\n"
+        "  7 Si la colonne travaux existe, elle doit être incluse dans les analyses et dans les extraits de table.\n"
+        "  8 Si les colonnes client et annee existent, elles doivent aussi être incluses dans les extraits de table "
+        "et peuvent servir à segmenter/comparer.\n"
+        "  9 Le champ y généré doit toujours être un nombre entier ou flottant pour les graphiques bar et line.\n\n"
         "Tu dois répondre comme un expert finance qui commente les chiffres et explique les résultats.\n\n"
         "Format de sortie strictement en JSON valide sans texte avant ni après.\n"
         "Schéma attendu\n"
@@ -171,8 +177,9 @@ def answer_finance_with_kimi(
         '  },\n'
         '  \"table_excerpt\": {\n'
         '    \"row_indices\": [0, 2, 5],\n'
-        '    \"columns\": [\"magasin\", \"code_magasin\", \"dept\", \"ve_an\", \"montant_annuel\", '
-        '\"gv\", \"pv1\", \"pv2\", \"pv3\", \"cout_preventive\", \"cout_curative\", \"cout_total\"]\n'
+        '    \"columns\": [\"client\", \"annee\", \"magasin\", \"departement\", \"dept\", \"code_magasin\", '
+        '\"ve_an\", \"montant_annuel\", \"gv\", \"pv1\", \"pv2\", \"pv3\", \"cout_preventive\", '
+        '\"cout_curative\", \"cout_total\", \"travaux\"]\n'
         "  }\n"
         "}\n\n"
         "Consignes pour le champ chart\n"
@@ -186,8 +193,8 @@ def answer_finance_with_kimi(
         "  row_indices doit contenir une petite liste d'indices de lignes parmi les lignes de la table envoyée.\n"
         "  Tu dois impérativement choisir des indices uniquement dans la plage d'indices valides qui sera fournie.\n"
         "  Si tu ne sais pas quelles lignes choisir utilise par défaut les indices [0, 1, 2, 3, 4] si ces lignes existent.\n"
-        "  columns doit contenir les noms exacts de toutes les colonnes de la table même celles non utilisées en contexte "
-        "par exemple magasin code_magasin dept ve_an montant_annuel gv pv1 pv2 pv3 cout_preventive cout_curative cout_total.\n"
+        "  columns doit contenir les noms exacts de toutes les colonnes de la table, y compris client, annee et travaux "
+        "si elles existent dans le fichier.\n"
         "  Si tu ne sais vraiment pas quelles lignes mettre tu peux laisser row_indices vide mais seulement en dernier recours.\n"
     )
 
