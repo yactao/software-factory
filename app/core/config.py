@@ -129,6 +129,9 @@ KIMI_MODEL_VET_DOC: str = os.getenv("KIMI_MODEL_VET_DOC", KIMI_MODEL_SINGLE)
 # Aïna Vet Finance
 VET_FINANCE_CONTAINER = os.getenv("VET_FINANCE_CONTAINER", "vet-finance")
 VET_FINANCE_BLOB_PATH = os.getenv("VET_FINANCE_BLOB_PATH", "vet_finance.ods")
+
+# Container pour les images d'audit
+AUDIT_IMAGE_CONTAINER = os.getenv("AUDIT_IMAGE_CONTAINER", "auditimage")
 # === CORS util ===
 def _parse_origins(env_value: str) -> list[str]:
     if not env_value:
