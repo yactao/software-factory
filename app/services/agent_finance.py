@@ -83,7 +83,7 @@ def answer_finance_with_kimi(
         raise HTTPException(500, "Le fichier Excel finance est vide.")
 
     # On limite le nombre de lignes envoyées au LLM
-    MAX_ROWS_FOR_LLM = 200
+    MAX_ROWS_FOR_LLM = 300
     df_llm = df.head(MAX_ROWS_FOR_LLM).copy()
 
     # Conversion en JSON liste de lignes
