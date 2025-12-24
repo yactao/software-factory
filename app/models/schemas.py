@@ -73,3 +73,7 @@ class AnalyzeResponse(BaseModel):
 class VetFinanceRequest(BaseModel):
     question: str
     conversation_id: Optional[str] = None
+
+class EmailRequest(BaseModel):
+    question: str
+    graph_access_token: Optional[str] = None

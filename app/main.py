@@ -17,6 +17,9 @@ from app.routers.vision_cleanup import router as vision_cleanup_router
 from app.routers.vision_attach import router as vision_attach_router
 from app.routers.vet_doc import router as vet_doc_router 
 from app.routers.aina_vet_finance import router as vet_finance_aina_router
+from app.routers.routes_email import router as email_router
+from app.routers.routes_email_attachments import router as email_attachments_router
+
 
 # Mount routers
 app.include_router(health_router)
@@ -34,6 +37,9 @@ app.include_router(vision_attach_router)
 app.include_router(finance_aina_router)
 app.include_router(vet_doc_router)
 app.include_router(vet_finance_aina_router)
+app.include_router(email_router)
+app.include_router(email_attachments_router)
+
 
 # Startup checks (inchangés)
 @app.on_event("startup")
