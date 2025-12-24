@@ -130,6 +130,12 @@ KIMI_MODEL_VET_DOC: str = os.getenv("KIMI_MODEL_VET_DOC", KIMI_MODEL_SINGLE)
 VET_FINANCE_CONTAINER = os.getenv("VET_FINANCE_CONTAINER", "vet-finance")
 VET_FINANCE_BLOB_PATH = os.getenv("VET_FINANCE_BLOB_PATH", "vet_finance.ods")
 
+#Aina Mail config
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+DEEPSEEK_API_URL = os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com/v1")
+GRAPH_CLIENT_ID = os.getenv("GRAPH_CLIENT_ID", "")
+GRAPH_CLIENT_SECRET = os.getenv("GRAPH_CLIENT_SECRET", "")
+
 # Container pour les images d'audit
 AUDIT_IMAGE_CONTAINER = os.getenv("AUDIT_IMAGE_CONTAINER", "auditimage")
 # === CORS util ===
