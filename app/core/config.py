@@ -1,3 +1,4 @@
+# app/core/config.py
 import os, datetime, urllib.parse, time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -133,8 +134,12 @@ VET_FINANCE_BLOB_PATH = os.getenv("VET_FINANCE_BLOB_PATH", "vet_finance.ods")
 #Aina Mail config
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = os.getenv("DEEPSEEK_API_URL", "https://api.deepseek.com/v1")
-GRAPH_CLIENT_ID = os.getenv("GRAPH_CLIENT_ID", "")
-GRAPH_CLIENT_SECRET = os.getenv("GRAPH_CLIENT_SECRET", "")
+BACK_CLIENT_ID = os.getenv("BACK_CLIENT_ID", "").strip()
+BACK_SECRET_CLIENT = os.getenv("BACK_SECRET_CLIENT", "").strip()
+TOKEN_URL = f"{AUTHORITY}/oauth2/v2.0/token"
+
+
+
 
 # Container pour les images d'audit
 AUDIT_IMAGE_CONTAINER = os.getenv("AUDIT_IMAGE_CONTAINER", "auditimage")

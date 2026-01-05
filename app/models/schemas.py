@@ -76,4 +76,4 @@ class VetFinanceRequest(BaseModel):
 
 class EmailRequest(BaseModel):
     question: str
-    graph_access_token: Optional[str] = None
+   

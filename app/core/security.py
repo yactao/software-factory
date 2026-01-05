@@ -2,7 +2,7 @@
 import requests, re
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from .config import TENANT_ID, CLIENT_ID, JWKS_URL, REQUIRED_SCOPE
+from .config import TENANT_ID, CLIENT_ID, JWKS_URL, REQUIRED_SCOPE, BACK_CLIENT_ID
 # ====== COLLE ICI SANS MODIFIER: import jwt / PyJWKClient et helpers ======
 try:
     import jwt
@@ -15,8 +15,8 @@ bearer_schema = HTTPBearer(auto_error=False)
 bearer_scheme = HTTPBearer()
 
 def _require_auth_config():
-    if not TENANT_ID or not CLIENT_ID:
-        raise HTTPException(500, "Auth not configured. Check TENANT_ID and CLIENT_ID in .env.")
+    if not TENANT_ID or not BACK_CLIENT_ID:
+        raise HTTPException(500, "Auth not configured. Check TENANT_ID and BACK_CLIENT_ID in .env.")
 
 # Charger JWKS au démarrage (copie inchangée)
 try:
@@ -36,17 +36,34 @@ def _verify_jwt(token: str) -> dict:
             token,
             signing_key.key,
             algorithms=["RS256"],
-            audience=f"api://{CLIENT_ID}",
+            audience=f"api://{BACK_CLIENT_ID}",
             options={"verify_aud": False, "verify_exp": False}
         )
         return payload
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token invalide: {str(e)}")
 
-def _auth_dependency(credentials: HTTPAuthorizationCredentials = Depends(bearer_schema)) -> dict:
+#def _auth_dependency(credentials: HTTPAuthorizationCredentials = Depends(bearer_schema)) -> dict:
+ #   if not credentials or not credentials.credentials:
+  #      raise HTTPException(401, "Authorization manquante (Bearer token)")
+    
+   # return _verify_jwt(credentials.credentials)
+
+def _auth_dependency(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_schema)
+) -> dict:
     if not credentials or not credentials.credentials:
         raise HTTPException(401, "Authorization manquante (Bearer token)")
-    return _verify_jwt(credentials.credentials)
+
+    #  validation JWT existante (inchangée)
+    claims = _verify_jwt(credentials.credentials)
+
+    #  AJOUT OBLIGATOIRE POUR OBO (safe)
+    claims["raw_token"] = credentials.credentials
+
+    # retour normal
+    return claims
+
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
     return _verify_jwt(credentials.credentials)

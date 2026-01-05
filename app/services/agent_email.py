@@ -1,43 +1,147 @@
-# app/services/agent_email.py
-
-from typing import Dict, Any, List, Tuple
-from datetime import datetime
+from typing import Dict, Any, List, Optional
 import re
-from app.core.config import DEEPSEEK_API_KEY, DEEPSEEK_API_URL
-import os
+from datetime import datetime
+from bs4 import BeautifulSoup
 from openai import OpenAI
 
-from bs4 import BeautifulSoup
-
-from app.utils.graph_client import fetch_all_emails, get_message_attachments
-
+from app.core.config import DEEPSEEK_API_KEY, DEEPSEEK_API_URL
+from app.core.obo import get_graph_token_on_behalf_of
 from app.utils.graph_client import (
-    get_message_attachments,
-    download_message_attachment
+    list_messages_minimal,
+    get_message_detail,
+    get_attachments_for_message,
 )
+
+# =========================================================
+# LLM Client
+# =========================================================
+
 deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url=DEEPSEEK_API_URL,
 )
 
-def clean_email_html(html: str) -> str:
-    """Convertit un email HTML en texte propre et supprime les parties inutiles."""
-    soup = BeautifulSoup(html or "", "html.parser")
+# =========================================================
+# SYSTEM PROMPT (METIER)
+# =========================================================
 
+SYSTEM_EMAIL_PROMPT = """
+Tu es un assistant spécialisé dans la lecture d’emails Outlook via Microsoft Graph.
+Tu n’as accès qu’aux emails fournis par l’application.
+Tu ne dois jamais inventer d’emails, de dates, d’expéditeurs ou de contenus.
+
+RÈGLES STRICTES :
+
+1) LISTE PAR DATE
+- Retourne la liste complète des emails de la date demandée
+- Pour chaque email : sujet, expéditeur, date, résumé court (1 phrase)
+- Ne retourne jamais le contenu complet
+
+2) LISTE PAR EXPÉDITEUR
+- Retourne TOUS les emails de l’expéditeur
+- Pour chaque email : sujet, expéditeur, date, résumé court
+- Aucune limitation (pas de top 5 / top 10)
+
+3) EMAIL SPÉCIFIQUE
+- Retourne UN SEUL email
+- Contenu COMPLET de l’email
+- AUCUN résumé
+
+Ne mélange jamais plusieurs modes.
+N’invente rien.
+"""
+
+# =========================================================
+# Helpers
+# =========================================================
+
+MAX_AUTO_SUMMARIES = 5  # bonne pratique perf
+
+def clean_email_html(html: str) -> str:
+    soup = BeautifulSoup(html or "", "html.parser")
     for tag in soup(["script", "style"]):
         tag.extract()
-
     text = soup.get_text(separator="\n")
     text = "\n".join(line.strip() for line in text.splitlines() if line.strip())
+    return text[:1200]
 
-    return text[:2000]
+def extract_sender_keywords(question: str) -> List[str]:
+    stop_words = {
+        "donne", "moi", "liste", "des", "emails", "email",
+        "de", "les", "tous", "toutes"
+    }
+    words = [w for w in re.split(r"\W+", question.lower()) if len(w) >= 3]
+    return [w for w in words if w not in stop_words]
 
 
+def sender_matches(email: Dict[str, Any], keywords: List[str]) -> bool:
+    addr = (
+        email.get("from", {})
+        .get("emailAddress", {})
+        .get("address", "")
+        .lower()
+    )
+    name = (
+        email.get("from", {})
+        .get("emailAddress", {})
+        .get("name", "")
+        .lower()
+    )
+    haystack = f"{addr} {name}"
+    return all(k in haystack for k in keywords)
+
+
+def extract_date_from_question(question: str) -> Optional[str]:
+    match = re.search(r"(\d{2})[/-](\d{2})[/-](\d{4})", question)
+    if not match:
+        return None
+
+    day, month, year = match.groups()
+    try:
+        dt = datetime(int(year), int(month), int(day))
+        return dt.strftime("%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def pick_best_email(question: str, emails: List[Dict[str, Any]]) -> Dict[str, Any]:
+    words = [w for w in re.split(r"\W+", question.lower()) if len(w) >= 4]
+    if not emails: 
+        raise RuntimeError("Aucun email disponible pour sélection")
+    best, score = emails[0], -1
+    for e in emails:
+        subj = (e.get("subject") or "").lower()
+        s = sum(1 for w in words if w in subj)
+        if s > score:
+            best, score = e, s
+    return best
+
+
+async def summarize_email_llm(text: str) -> str:
+    prompt = f"""
+Résume l'email suivant en UNE phrase courte et factuelle.
+N'invente rien.
+
+Email :
+{text[:1200]}
+"""
+    resp = deepseek_client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": "Assistant de résumé d'emails."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=60,
+    )
+    return resp.choices[0].message.content.strip()
+
+# =========================================================
+# Date-based filtering
 def smart_filter(question: str, emails: List[dict]) -> List[dict]:
-    """Filtre intelligent avant d'envoyer au LLM."""
+    """Filtre intelligent central (logique qui marchait)."""
     q = (question or "").lower()
 
-    # 1) Filtrer par expéditeur (ex: "mourad", "firas", etc.)
+    # 1) Filtrer par expéditeur
     for email in emails:
         sender = email.get("from", {}).get("emailAddress", {}).get("address", "")
         if sender:
@@ -51,345 +155,173 @@ def smart_filter(question: str, emails: List[dict]) -> List[dict]:
                              .lower())
                 ]
 
-    # 2) Détection d'une date (ex: "11/11/2025")
-    date_pattern = r"(\d{1,2}/\d{1,2}/\d{4})"
-    match = re.search(date_pattern, q)
+    # 2) Date exacte JJ/MM/AAAA
+    match = re.search(r"(\d{1,2}/\d{1,2}/\d{4})", q)
     if match:
-        date_str = match.group(1)
         try:
-            target_date = datetime.strptime(date_str, "%d/%m/%Y").date()
-            filtered = []
-            for e in emails:
-                d = e.get("receivedDateTime")
-                if d:
-                    email_date = datetime.fromisoformat(d.replace("Z", "")).date()
-                    if email_date == target_date:
-                        filtered.append(e)
-            return filtered
-        except Exception:
+            target_date = datetime.strptime(match.group(1), "%d/%m/%Y").date()
+            return [
+                e for e in emails
+                if e.get("receivedDateTime") and
+                   datetime.fromisoformat(
+                       e["receivedDateTime"].replace("Z", "")
+                   ).date() == target_date
+            ]
+        except ValueError:
             pass
 
-    # 3) Emails d’aujourd’hui
+    # 3) Aujourd’hui
     if "aujourd'hui" in q or "today" in q:
         today = datetime.utcnow().date()
         return [
             e for e in emails
             if e.get("receivedDateTime") and
-               datetime.fromisoformat(e["receivedDateTime"].replace("Z", "")).date() == today
+               datetime.fromisoformat(
+                   e["receivedDateTime"].replace("Z", "")
+               ).date() == today
         ]
 
-    # 4) Emails de cette semaine
+    # 4) Cette semaine
     if "semaine" in q:
         today = datetime.utcnow().date()
         return [
             e for e in emails
             if e.get("receivedDateTime") and
-               (today - datetime.fromisoformat(e["receivedDateTime"].replace("Z", "")).date()).days <= 7
+               (today - datetime.fromisoformat(
+                   e["receivedDateTime"].replace("Z", "")
+               ).date()).days <= 7
         ]
 
-    # 5) Filtrer par mot-clé dans le sujet
-    words = q.split()
-    return [
-        email for email in emails
-        if any(word in (email.get("subject") or "").lower() for word in words)
-    ] or emails
+    # 5) Sujet (fallback)
+    words = [w for w in q.split() if len(w) > 2]
+    subject_matched = [
+        e for e in emails
+        if any(word in (e.get("subject") or "").lower() for word in words)
+    ]
 
+    return subject_matched
 
-def _format_attachments_for_context(graph_token: str, message_id: str) -> Tuple[str, List[dict]]:
-    """
-    Récupère les pièces jointes depuis Graph pour alimenter le prompt,
-    et retourne:
-      - attachments_text (lisible pour le LLM)
-      - attachments_structured (pour le frontend)
-    """
-    attachments_data = get_message_attachments(graph_token, message_id)
+# =========================================================
+# Main entrypoint
+# =========================================================
 
-    attachments_text = ""
-    attachments_structured: List[dict] = []
-
-    if attachments_data and "value" in attachments_data:
-        for att in attachments_data["value"]:
-            if att.get("@odata.type") == "#microsoft.graph.fileAttachment":
-                attachments_text += (
-                    f"- ID: {att.get('id')}\n"
-                    f"  Nom: {att.get('name')}\n"
-                    f"  Type: {att.get('contentType')}\n"
-                    f"  Taille: {att.get('size')}\n"
-                )
-                attachments_structured.append({
-                    "id": att.get("id"),
-                    "name": att.get("name"),
-                    "contentType": att.get("contentType"),
-                    "size": att.get("size"),
-                })
-
-    return attachments_text, attachments_structured
-
-
-def answer_email_with_llm(
+async def answer_email_with_llm(
     question: str,
-    graph_token: str,
     claims: Dict[str, Any],
 ) -> Dict[str, Any]:
 
-    # 1) Récupération emails avec pagination (max 500)
-    emails = fetch_all_emails(graph_token, max_emails=500)
-    if not emails:
-        return {"answer": "Aucun email trouvé.", "emails": []}
+    # -------------------------
+    # Auth / OBO
+    # -------------------------
+    user_token = claims.get("raw_token")
+    if not user_token:
+        raise RuntimeError("Token utilisateur manquant")
 
-    # 2) Filtrage intelligent avant LLM
-    filtered_emails = smart_filter(question, emails)[:20]  # éviter explosion tokens
+    user_id = claims.get("oid") or claims.get("sub") or "unknown"
+    graph_token = await get_graph_token_on_behalf_of(
+        user_token=user_token,
+        user_id=user_id,
+    )
+    # -------------------------
+    # Listing minimal (perf)
+    # -------------------------
+    candidates = await list_messages_minimal(
+        graph_token=graph_token,
+        top=1000,  # on prend large
+    )
 
-    email_context = ""
-    extracted_emails: List[dict] = []
+    # Smart filtering
+    candidates = smart_filter(question, candidates)
 
-    # 3) Construire le contexte pour le LLM (AVEC pièces jointes réelles)
-    for i, msg in enumerate(filtered_emails):
-        message_id = msg.get("id")
+    if not candidates:
+        return {
+            "answer": "Aucun email correspondant à la date demandée.",
+            "emails": []
+        }
 
-        sender = msg.get("from", {}).get("emailAddress", {}).get("address", "Inconnu")
+    # =====================================================
+    # MODE LISTE (DATE / EXPÉDITEUR)
+    # =====================================================
+    q_lower = (question or "").lower()
+    is_list = (
+        any(k in q_lower for k in ["liste", "list", "tous", "toutes"]) or
+        bool(re.search(r"\d{1,2}/\d{1,2}/\d{4}", q_lower)) or
+        "aujourd'hui" in q_lower or
+        "today" in q_lower or
+        "semaine" in q_lower
+    )
 
-        destinataires = [
-            r.get("emailAddress", {}).get("address", "Inconnu")
-            for r in msg.get("toRecipients", [])
-        ]
-        cc_list = [
-            r.get("emailAddress", {}).get("address", "Inconnu")
-            for r in msg.get("ccRecipients", [])
-        ]
-        bcc_list = [
-            r.get("emailAddress", {}).get("address", "Inconnu")
-            for r in msg.get("bccRecipients", [])
-        ]
+    if is_list:
+        items: List[Dict[str, Any]] = []
+        auto_summary_count = 0
 
-        date_received = msg.get("receivedDateTime", "Non disponible")
-        date_sent = msg.get("sentDateTime", "Non disponible")
+        for e in candidates:
+            summary = e.get("bodyPreview")
+            clean_body: Optional[str] = None
 
-        subject = msg.get("subject", "(Sans sujet)")
-        body_html = msg.get("body", {}).get("content", "")
-        clean_body = clean_email_html(body_html)
+            if not summary and auto_summary_count < MAX_AUTO_SUMMARIES:
+                detail = await get_message_detail(
+                    graph_token=graph_token,
+                    message_id=e.get("id"),
+                )
+                body_html = (detail or {}).get("body", {}).get("content", "") if detail else ""
+                if body_html:
+                    clean_body = clean_email_html(body_html)
 
-        attachments_text, attachments_structured = _format_attachments_for_context(
+                if clean_body:
+                    try:
+                        summary = await summarize_email_llm(clean_body)
+                        auto_summary_count += 1
+                    except Exception:
+                        # If summarization fails, keep existing summary or fallback later
+                        pass
+
+            if not summary:
+                summary = "Résumé non généré"
+
+            items.append({
+                "message_id": e.get("id"),
+                "subject": e.get("subject") or "(Sans sujet)",
+                "sender": e.get("from", {}).get("emailAddress", {}).get("address", "Inconnu"),
+                "date_received": e.get("receivedDateTime"),
+                "hasAttachments": bool(e.get("hasAttachments")),
+                "summary": summary,
+            })
+
+        return {
+            "answer": f"Voici les {len(items)} email(s) correspondants.",
+            "emails": items
+        }
+
+    # =====================================================
+    # MODE EMAIL UNIQUE (COMPLET)
+    # =====================================================
+    best = pick_best_email(question, candidates)
+    message_id = best["id"]
+
+    detail = await get_message_detail(
+        graph_token=graph_token,
+        message_id=message_id,
+    )
+
+    body_html = (detail or {}).get("body", {}).get("content", "") if detail else ""
+    clean_body = clean_email_html(body_html)
+
+    attachments = []
+    if detail and detail.get("hasAttachments"):
+        attachments = await get_attachments_for_message(
             graph_token=graph_token,
             message_id=message_id,
         )
 
-        email_context += f"""
-### EMAIL {i+1}
-MessageID: {message_id}
-De: {sender}
-À: {", ".join(destinataires) or "Non disponible"}
-CC: {", ".join(cc_list) or "Non disponible"}
-BCC: {", ".join(bcc_list) or "Non disponible"}
-Date réception: {date_received}
-Date envoi: {date_sent}
-Sujet: {subject}
-Pièces jointes:
-{attachments_text if attachments_text else "Aucune"}
-Contenu:
-{clean_body}
----------------------------------------------
-"""
-
-        extracted_emails.append({
-            "message_id": message_id,
-            "sender": sender,
-            "recipients": destinataires,
-            "cc": cc_list,
-            "bcc": bcc_list,
-            "date_received": date_received,
-            "date_sent": date_sent,
-            "subject": subject,
-            "body": clean_body,
-            "attachments": attachments_structured,
-        })
-
-    # 4) Prompt final (celui que tu voulais, avec règles strictes)
-    extraction_prompt = f"""
-Tu es un assistant expert en analyse d'emails Outlook.
-Tu ne réponds QU’À PARTIR des emails fournis ci-dessous.
-Ne JAMAIS inventer d’informations.
-
-RÈGLES ABSOLUES (OBLIGATOIRES) :
-- N’invente JAMAIS un email, un contenu ou une pièce jointe
-- Si une information n’existe pas dans les emails fournis, écris explicitement "Non disponible"
-- Si une pièce jointe existe, utilise UNIQUEMENT son ID et son nom fournis
-- N’invente JAMAIS de lien de téléchargement
-- N’invente JAMAIS de nom de fichier
-
-Voici les emails disponibles :
-{email_context}
-
-Ta tâche dépend de la question de l'utilisateur :
-
-────────────────────────────────
-
-1️⃣ SI l'utilisateur demande UN EMAIL PRÉCIS :
-
-TYPE: EMAIL_UNIQUE
-Sujet: <sujet exact>
-Expéditeur: <email>
-Destinataires: <liste>
-CC: <liste>
-BCC: <liste>
-Date de réception: <date>
-Date d'envoi: <date>
-Pièces jointes:
-- Nom: <nom exact>
-  ID: <id exact>
-  Type: <contentType>
-(ou "Aucune" si vide)
-
-Contenu:
-<contenu exact>
-
-────────────────────────────────
-
-2️⃣ SI l'utilisateur demande UNE LISTE D'EMAILS :
-
-TYPE: LISTE_EMAILS
-Emails:
-- Sujet: <sujet>
-  Expéditeur: <email>
-  Destinataires: <liste>
-  CC: <liste>
-  BCC: <liste>
-  Date de réception: <date>
-  Date d'envoi: <date>
-  Pièces jointes:
-  - Nom: <nom exact>
-    ID: <id exact>
-  (ou "Aucune")
-  Résumé: <résumé très court>
-
-────────────────────────────────
-
-3️⃣ SI l'utilisateur demande UN RÉSUMÉ GÉNÉRAL :
-
-TYPE: RESUME
-Résumé:
-<texte court>
-
-────────────────────────────────
-
-4️⃣ SI AUCUN EMAIL NE CORRESPOND :
-
-TYPE: AUCUN
-Message: Aucun email ne correspond.
-
-────────────────────────────────
-
-IMPORTANT :
-- Si plusieurs emails correspondent mais que l’utilisateur semble en vouloir un seul, retourne le plus pertinent
-- Ne change JAMAIS le format ci-dessus
-- Ne rajoute AUCUN texte en dehors du format
-
-Question de l'utilisateur :
-{question}
-"""
-
-    # 5) Appel LLM (client AINA)
-    # -> on garde ton comportement: renvoyer le texte brut + emails structurés
-        # 5) Appel LLM (DeepSeek – inline, comme EMAILREADER)
-    try:
-        response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Tu es un assistant expert en analyse d'emails Outlook.",
-                },
-                {
-                    "role": "user",
-                    "content": extraction_prompt,
-                },
-            ],
-        )
-
-        if not response or not response.choices:
-            answer_text = ""
-        else:
-            answer_text = response.choices[0].message.content or ""
-
-    except Exception as e:
-        # log minimal, sans casser le flux
-        print("❌ DeepSeek error:", e)
-        answer_text = ""
-
-
     return {
-        "answer": answer_text or "Aucune réponse générée.",
-        "emails": extracted_emails,
-        
+        "answer": clean_body,
+        "emails": [{
+            "message_id": message_id,
+            "subject": (detail or {}).get("subject"),
+            "sender": (detail or {}).get("from", {}).get("emailAddress", {}).get("address"),
+            "date_received": (detail or {}).get("receivedDateTime"),
+            "body": clean_body,
+            "attachments": attachments,
+        }]
     }
-
-
-def list_email_attachments(
-    message_id: str,
-    claims: Dict[str, Any],
-) -> List[Dict[str, Any]]:
-    """
-    Liste les pièces jointes (fileAttachment uniquement)
-    pour un email Outlook donné.
-    """
-
-    # 🔐 Récupération du token Graph depuis les claims
-    # (temporaire, sans OBO)
-    graph_token = claims.get("graph_access_token")
-    if not graph_token:
-        raise RuntimeError(
-            "Token Graph manquant dans les claims (OBO non implémenté)"
-        )
-
-    data = get_message_attachments(
-        graph_token=graph_token,
-        message_id=message_id,
-    )
-
-    attachments: List[Dict[str, Any]] = []
-
-    for att in data.get("value", []):
-        if att.get("@odata.type") == "#microsoft.graph.fileAttachment":
-            attachments.append({
-                "id": att.get("id"),
-                "name": att.get("name"),
-                "contentType": att.get("contentType"),
-                "size": att.get("size"),
-            })
-
-    return attachments
-
-
-def download_email_attachment(
-    message_id: str,
-    attachment_id: str,
-    claims: Dict[str, Any],
-) -> Tuple[bytes, str, str | None]:
-    """
-    Télécharge une pièce jointe Outlook et retourne :
-    - bytes
-    - content_type
-    - filename (optionnel)
-    """
-
-    # 🔐 Récupération du token Graph
-    graph_token = claims.get("graph_access_token")
-    if not graph_token:
-        raise RuntimeError(
-            "Token Graph manquant dans les claims (OBO non implémenté)"
-        )
-
-    file_bytes, content_type = download_message_attachment(
-        graph_token=graph_token,
-        message_id=message_id,
-        attachment_id=attachment_id,
-    )
-
-    if not file_bytes:
-        raise RuntimeError("Pièce jointe introuvable")
-
-    # Nom de fichier → récupéré côté Graph si dispo
-    filename = attachment_id  # fallback safe
-
-    return file_bytes, content_type, filename
-

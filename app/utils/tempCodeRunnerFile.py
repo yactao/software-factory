@@ -1,6 +1,6 @@
 # app/utils/graph_client.py
 from typing import Any, Dict, List, Optional
-from app.core.http_client import get_http_client
+
 from datetime import datetime, timezone
 GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
 
