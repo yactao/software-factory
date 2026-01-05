@@ -25,3 +25,4 @@ opencv-python-headless==4.10.0.84
 odfpy
 openpyxl 
 httpx
+beautifulsoup4
