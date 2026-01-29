@@ -1,6 +1,7 @@
+# app/services/agent_email.py backend service for email question answering with LLM
 from typing import Dict, Any, List, Optional
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from openai import OpenAI
 
@@ -56,6 +57,17 @@ N’invente rien.
 # =========================================================
 
 MAX_AUTO_SUMMARIES = 5  # bonne pratique perf
+def detect_read_filter(question: str) -> Optional[bool]:
+    q = (question or "").lower()
+
+    if "non lu" in q or "non lus" in q or "unread" in q or "pas lu" in q:
+        return False
+
+    if (" lu" in q or " lus" in q or "read" in q) and \
+       ("non lu" not in q and "non lus" not in q and "pas lu" not in q):
+        return True
+
+    return None
 
 def clean_email_html(html: str) -> str:
     soup = BeautifulSoup(html or "", "html.parser")
@@ -73,7 +85,6 @@ def extract_sender_keywords(question: str) -> List[str]:
     words = [w for w in re.split(r"\W+", question.lower()) if len(w) >= 3]
     return [w for w in words if w not in stop_words]
 
-
 def sender_matches(email: Dict[str, Any], keywords: List[str]) -> bool:
     addr = (
         email.get("from", {})
@@ -90,6 +101,23 @@ def sender_matches(email: Dict[str, Any], keywords: List[str]) -> bool:
     haystack = f"{addr} {name}"
     return all(k in haystack for k in keywords)
 
+def format_recipient_list(recipients: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Return list of {name, address} from Graph recipients."""
+    out: List[Dict[str, str]] = []
+    for r in recipients or []:
+        ea = (r or {}).get("emailAddress") or {}
+        out.append({
+            "name": ea.get("name") or "",
+            "address": ea.get("address") or "",
+        })
+    return out
+
+def format_sender(email: Dict[str, Any]) -> Dict[str, str]:
+    ea = (email.get("from") or {}).get("emailAddress") or {}
+    return {
+        "name": ea.get("name") or "",
+        "address": ea.get("address") or "Inconnu",
+    }
 
 def extract_date_from_question(question: str) -> Optional[str]:
     match = re.search(r"(\d{2})[/-](\d{2})[/-](\d{4})", question)
@@ -180,6 +208,16 @@ def smart_filter(question: str, emails: List[dict]) -> List[dict]:
                    e["receivedDateTime"].replace("Z", "")
                ).date() == today
         ]
+    # 3bis) Hier / Yesterday
+    if "hier" in q or "yesterday" in q:
+        yesterday = (datetime.utcnow().date() - timedelta(days=1))
+        return [
+            e for e in emails
+            if e.get("receivedDateTime") and
+            datetime.fromisoformat(
+                e["receivedDateTime"].replace("Z", "")
+            ).date() == yesterday
+        ]
 
     # 4) Cette semaine
     if "semaine" in q:
@@ -209,62 +247,94 @@ async def answer_email_with_llm(
     question: str,
     claims: Dict[str, Any],
 ) -> Dict[str, Any]:
+    print("🔥 agent_email.py LOADED (FINAL VERSION) 🔥")
 
-    # -------------------------
+    # =====================================================
     # Auth / OBO
-    # -------------------------
+    # =====================================================
     user_token = claims.get("raw_token")
     if not user_token:
         raise RuntimeError("Token utilisateur manquant")
 
     user_id = claims.get("oid") or claims.get("sub") or "unknown"
+
     graph_token = await get_graph_token_on_behalf_of(
         user_token=user_token,
         user_id=user_id,
     )
-    # -------------------------
-    # Listing minimal (perf)
-    # -------------------------
-    candidates = await list_messages_minimal(
-        graph_token=graph_token,
-        top=1000,  # on prend large
+
+    # =====================================================
+    # Detect read / unread intent ONCE
+    # =====================================================
+    q_lower = (question or "").lower()
+    read_filter = detect_read_filter(question)
+
+    is_read_query = any(
+        k in q_lower
+        for k in ["non lu", "non lus", "unread", "pas lu", "lu", "lus", "read"]
     )
 
-    # Smart filtering
-    candidates = smart_filter(question, candidates)
+    # =====================================================
+    # List messages (Graph minimal)
+    # =====================================================
+    candidates = await list_messages_minimal(
+        graph_token=graph_token,
+        top=1000,
+        is_read=read_filter,  # Graph-side filtering
+    )
+
+    # =====================================================
+    # Hard safety filter (Python)
+    # =====================================================
+    if read_filter is not None:
+        candidates = [
+            e for e in candidates
+            if bool(e.get("isRead")) == read_filter
+        ]
+
+    # =====================================================
+    # Smart semantic filter (ONLY if not read/unread query)
+    # =====================================================
+    if not is_read_query:
+        candidates = smart_filter(question, candidates)
 
     if not candidates:
         return {
-            "answer": "Aucun email correspondant à la date demandée.",
-            "emails": []
+            "answer": "Aucun email correspondant à votre demande.",
+            "emails": [],
         }
 
     # =====================================================
-    # MODE LISTE (DATE / EXPÉDITEUR)
+    # Detect LIST mode
     # =====================================================
-    q_lower = (question or "").lower()
     is_list = (
-        any(k in q_lower for k in ["liste", "list", "tous", "toutes"]) or
-        bool(re.search(r"\d{1,2}/\d{1,2}/\d{4}", q_lower)) or
-        "aujourd'hui" in q_lower or
-        "today" in q_lower or
-        "semaine" in q_lower
+        any(k in q_lower for k in ["liste", "list", "tous", "toutes", "emails"])
+        or is_read_query
+        or bool(re.search(r"\d{1,2}/\d{1,2}/\d{4}", q_lower))
+        or "aujourd'hui" in q_lower
+        or "today" in q_lower
+        or "semaine" in q_lower
     )
 
+    # =====================================================
+    # MODE LISTE → RESUME ONLY (NEVER BODY)
+    # =====================================================
     if is_list:
         items: List[Dict[str, Any]] = []
         auto_summary_count = 0
 
         for e in candidates:
-            summary = e.get("bodyPreview")
+            summary: Optional[str] = None
             clean_body: Optional[str] = None
 
-            if not summary and auto_summary_count < MAX_AUTO_SUMMARIES:
+            # Always generate a REAL résumé (1 sentence)
+            if auto_summary_count < MAX_AUTO_SUMMARIES:
                 detail = await get_message_detail(
                     graph_token=graph_token,
                     message_id=e.get("id"),
                 )
-                body_html = (detail or {}).get("body", {}).get("content", "") if detail else ""
+
+                body_html = (detail or {}).get("body", {}).get("content", "")
                 if body_html:
                     clean_body = clean_email_html(body_html)
 
@@ -273,28 +343,35 @@ async def answer_email_with_llm(
                         summary = await summarize_email_llm(clean_body)
                         auto_summary_count += 1
                     except Exception:
-                        # If summarization fails, keep existing summary or fallback later
-                        pass
+                        summary = None
 
             if not summary:
-                summary = "Résumé non généré"
+                summary = "Résumé indisponible"
 
             items.append({
                 "message_id": e.get("id"),
                 "subject": e.get("subject") or "(Sans sujet)",
-                "sender": e.get("from", {}).get("emailAddress", {}).get("address", "Inconnu"),
-                "date_received": e.get("receivedDateTime"),
+
+                # Structured metadata
+                "from": format_sender(e),
+                "to": format_recipient_list(e.get("toRecipients", [])),
+                "cc": format_recipient_list(e.get("ccRecipients", [])),
+                "bcc": format_recipient_list(e.get("bccRecipients", [])),
+                "isRead": bool(e.get("isRead")),
+                "receivedDateTime": e.get("receivedDateTime"),
                 "hasAttachments": bool(e.get("hasAttachments")),
+
+                # ✅ REAL résumé (never raw body)
                 "summary": summary,
             })
 
         return {
             "answer": f"Voici les {len(items)} email(s) correspondants.",
-            "emails": items
+            "emails": items,
         }
 
     # =====================================================
-    # MODE EMAIL UNIQUE (COMPLET)
+    # MODE EMAIL UNIQUE → FULL CONTENT
     # =====================================================
     best = pick_best_email(question, candidates)
     message_id = best["id"]
@@ -304,7 +381,7 @@ async def answer_email_with_llm(
         message_id=message_id,
     )
 
-    body_html = (detail or {}).get("body", {}).get("content", "") if detail else ""
+    body_html = (detail or {}).get("body", {}).get("content", "")
     clean_body = clean_email_html(body_html)
 
     attachments = []
@@ -316,12 +393,22 @@ async def answer_email_with_llm(
 
     return {
         "answer": clean_body,
-        "emails": [{
-            "message_id": message_id,
-            "subject": (detail or {}).get("subject"),
-            "sender": (detail or {}).get("from", {}).get("emailAddress", {}).get("address"),
-            "date_received": (detail or {}).get("receivedDateTime"),
-            "body": clean_body,
-            "attachments": attachments,
-        }]
+        "emails": [
+            {
+                "message_id": message_id,
+                "subject": detail.get("subject") or "(Sans sujet)",
+
+                "from": format_sender(detail),
+                "to": format_recipient_list(detail.get("toRecipients", [])),
+                "cc": format_recipient_list(detail.get("ccRecipients", [])),
+                "bcc": format_recipient_list(detail.get("bccRecipients", [])),
+
+                "receivedDateTime": detail.get("receivedDateTime"),
+                "isRead": bool(detail.get("isRead")),
+
+                # ✅ Full body ONLY here
+                "body": clean_body,
+                "attachments": attachments,
+            }
+        ],
     }
