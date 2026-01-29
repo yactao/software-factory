@@ -2,7 +2,7 @@
 
 from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 
 from app.core.security import _auth_dependency, _require_scope
 from app.core.obo import get_graph_token_on_behalf_of
@@ -18,15 +18,11 @@ async def get_email_attachments(
     message_id: str,
     claims: Dict[str, Any] = Depends(_auth_dependency),
 ):
-    """
-    Liste les pièces jointes d’un email Outlook (OBO, lazy).
-    """
     _require_scope(claims)
 
     if not message_id:
         raise HTTPException(status_code=400, detail="message_id manquant")
 
-    # 🔐 OBO
     user_token = claims.get("raw_token")
     user_id = claims.get("oid") or claims.get("sub") or "unknown"
 
@@ -49,9 +45,6 @@ async def download_attachment(
     attachment_id: str,
     claims: Dict[str, Any] = Depends(_auth_dependency),
 ):
-    """
-    Télécharge une pièce jointe Outlook (OBO sécurisé).
-    """
     _require_scope(claims)
 
     if not message_id or not attachment_id:
@@ -60,7 +53,6 @@ async def download_attachment(
             detail="message_id ou attachment_id manquant",
         )
 
-    # 🔐 OBO
     user_token = claims.get("raw_token")
     user_id = claims.get("oid") or claims.get("sub") or "unknown"
 
@@ -69,18 +61,20 @@ async def download_attachment(
         user_id=user_id,
     )
 
-    file_bytes, content_type = await download_message_attachment(
+    file_bytes, content_type, filename = await download_message_attachment(
         graph_token=graph_token,
         message_id=message_id,
         attachment_id=attachment_id,
     )
 
-    headers = {
-        "Content-Disposition": f'attachment; filename="{attachment_id}"'
-    }
-
-    return StreamingResponse(
-        iter([file_bytes]),
-        media_type=content_type,
-        headers=headers,
+    return Response(
+        content=file_bytes,
+        media_type=content_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
     )
