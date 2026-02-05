@@ -5,8 +5,7 @@ from typing import Literal, Tuple
 
 from fastapi import HTTPException
 
-from app.core.config import KIMI_MODEL_SINGLE
-from app.services.kimi_client import kimi_chat_completion
+from app.services.llm_provider import llm_chat_completion
 
 ScopeType = Literal["single_store", "global", "fallback"]
 
@@ -48,16 +47,15 @@ def decide_scope_with_kimi(question: str) -> Tuple[ScopeType, str]:
         {"role": "user", "content": q},
     ]
 
-    # --- Appel Kimi ---
     try:
-        raw = kimi_chat_completion(
+        raw = llm_chat_completion(
+            "rag_classif",
             messages,
-            model=KIMI_MODEL_SINGLE,
             temperature=0.0,
             max_tokens=300,
         )
     except Exception as e:
-        return "fallback", f"kimi_api_error:{e}"
+        return "fallback", f"llm_api_error:{e}"
 
     raw_str = (raw or "").strip()
 

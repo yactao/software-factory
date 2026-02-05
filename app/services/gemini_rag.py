@@ -1,8 +1,7 @@
 import json
 from typing import List, Dict, Any, Tuple
 
-from app.core.config import KIMI_MODEL_SINGLE
-from app.services.kimi_client import kimi_chat_completion
+from app.services.llm_provider import llm_chat_completion
 
 
 def _synthesize_with_citations(
@@ -74,11 +73,11 @@ def _synthesize_with_citations(
         {"role": "user", "content": user_prompt},
     ]
 
-    # 5) Appel Kimi + parsing robuste
+    # 5) Appel LLM (Kimi / OpenAI / Azure) + parsing robuste
     try:
-        raw = kimi_chat_completion(
+        raw = llm_chat_completion(
+            "rag_single",
             messages,
-            model=KIMI_MODEL_SINGLE,
             temperature=0.1,
             max_tokens=1100,
         )

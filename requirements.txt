@@ -9,6 +9,7 @@ azure-storage-blob>=12.19.0
 google-genai>=0.3.0
 pydantic
 pdf2image
+pypdf
 python-multipart
 Pillow
 openai>=1.40.0
