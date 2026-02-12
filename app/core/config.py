@@ -162,6 +162,9 @@ TOKEN_URL = f"{AUTHORITY}/oauth2/v2.0/token"
 
 # Container pour les images d'audit
 AUDIT_IMAGE_CONTAINER = os.getenv("AUDIT_IMAGE_CONTAINER", "auditimage")
+
+# Container pour les images Aïna Vision Architecture (plans annotés)
+ARCHITECTURE_IMAGE_CONTAINER = os.getenv("ARCHITECTURE_IMAGE_CONTAINER", "architecture-images")
 # === CORS util ===
 def _parse_origins(env_value: str) -> list[str]:
     if not env_value:

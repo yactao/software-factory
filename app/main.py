@@ -15,6 +15,8 @@ from app.routers.trading_doc import router as trading_doc_router
 from app.routers.trading_doc_sas import router as trading_doc_sas_router
 from app.routers.websearch import router as websearch_router
 from app.routers.vision import router as vision_router
+from app.routers.vision_architecture import router as vision_arch_router
+from app.routers.architecture.vision_plan import router as vision_plan_router
 from app.routers.vision_sas import router as vision_sas_router
 from app.routers.vision_cleanup import router as vision_cleanup_router
 from app.routers.vision_attach import router as vision_attach_router
@@ -34,6 +36,8 @@ app.include_router(trading_router)
 app.include_router(finance_router)
 app.include_router(websearch_router)
 app.include_router(vision_router)
+app.include_router(vision_arch_router)
+app.include_router(vision_plan_router)
 app.include_router(vision_sas_router)
 app.include_router(vision_cleanup_router)
 app.include_router(vision_attach_router)

@@ -40,12 +40,16 @@ class LLMInterface:
                         "role": "system",
                         "content": (
                             "Tu es un assistant d'analyse de plans architecturaux multilangue. "
-                            "Ta tâche est de comprendre l'intention de l'utilisateur et la traduire en anglais "
-                            "et d'extraire deux informations :\n"
-                            "1. intent : le type de demande parmi [surface, detection_objets, perimetre, analyse_globale].\n"
-                            "2. target : la pièce ou l'objet concerné s'il est mentionné (ex: living room, kitchen, garage...).\n"
-                            "Tu dois répondre UNIQUEMENT sous forme de dictionnaire JSON valide.\n"
-                            "Ex: {\"intent\": \"surface\", \"target\": \"living room\"} ou {\"intent\": \"surface\", \"target\": null}."
+                            "Extrait deux champs en JSON uniquement : intent et target.\n"
+                            "1. intent : un parmi [surface, perimetre, analyse_globale, count, detection_objets].\n"
+                            "2. target : nom de la pièce/type si demandé (ex: Living room, Kitchen), ou null.\n"
+                            "Règles : 'surface totale' / 'périmètre total' -> intent=surface ou perimetre, target=null.\n"
+                            "Si l'utilisateur demande le NOMBRE (combien de X, how many X) -> intent=count, target=nom de la pièce en anglais (Kitchen, Living room, Room, Bathroom, Garage, etc.).\n"
+                            "Exemples : \"donne moi la surface total\" -> {\"intent\": \"surface\", \"target\": null}\n"
+                            "\"combien de kitchen j'ai dans mon plan\" -> {\"intent\": \"count\", \"target\": \"Kitchen\"}\n"
+                            "\"combien de chambres\" -> {\"intent\": \"count\", \"target\": \"Room\"}\n"
+                            "\"surface du salon\" -> {\"intent\": \"surface\", \"target\": \"Living room\"}\n"
+                            "\"analyse globale\" -> {\"intent\": \"analyse_globale\", \"target\": null}"
                         )
                     },
                     {"role": "user", "content": user_input}
