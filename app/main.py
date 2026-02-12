@@ -10,6 +10,9 @@ from app.routers.rag import router as rag_router
 from app.routers.trading import router as trading_router
 from app.routers.finance import router as finance_router
 from app.routers.aina_finance import router as finance_aina_router
+from app.routers.aina_trading_finance import router as trading_finance_router
+from app.routers.trading_doc import router as trading_doc_router
+from app.routers.trading_doc_sas import router as trading_doc_sas_router
 from app.routers.websearch import router as websearch_router
 from app.routers.vision import router as vision_router
 from app.routers.vision_sas import router as vision_sas_router
@@ -35,6 +38,9 @@ app.include_router(vision_sas_router)
 app.include_router(vision_cleanup_router)
 app.include_router(vision_attach_router)
 app.include_router(finance_aina_router)
+app.include_router(trading_finance_router)
+app.include_router(trading_doc_router)
+app.include_router(trading_doc_sas_router)
 app.include_router(vet_doc_router)
 app.include_router(vet_finance_aina_router)
 app.include_router(email_router)
