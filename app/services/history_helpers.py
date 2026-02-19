@@ -58,6 +58,18 @@ def _pack_meta(meta: Optional[Dict[str, Any]], limit_chars: int = 32000) -> str:
             if "rows" in meta and isinstance(meta["rows"], list):
                 slim["rows_preview"] = meta["rows"][:10]
                 slim["rows_total"] = len(meta["rows"])
+            # Vision Architecture : conserver image + annotations pour l'historique
+            if "image" in meta and "annotations" in meta:
+                slim["image"] = meta.get("image")
+                slim["image_width"] = meta.get("image_width")
+                slim["image_height"] = meta.get("image_height")
+                slim["annotations"] = meta.get("annotations")
+                slim["response_text"] = str(meta.get("response_text", ""))[:16000]
+                slim["surfaces"] = meta.get("surfaces")
+                slim["perimeters"] = meta.get("perimeters")
+                slim["intent"] = meta.get("intent")
+                slim["target"] = meta.get("target")
+                slim["conversation_id"] = meta.get("conversation_id")
         s = json.dumps(slim, ensure_ascii=False)
         return s[:limit_chars]
     except Exception:
@@ -257,20 +269,57 @@ def _get_recent_chat_context(
 def get_last_vision_file_path(claims: dict, conversation_id: str) -> Optional[str]:
     """Récupère le dernier meta.vision_file_path sur la conv."""
     table: TableClient = _chat_table_cached()
-    if not table: return None
+    if not table:
+        return None
     pk = _pk_from_claims(claims)
-    rows = list(table.query_entities(
-        query_filter=f"PartitionKey eq '{pk}' and conversation_id eq '{conversation_id}' and route eq 'vision'",
-        select=["RowKey", "meta_json"]))
-    rows.sort(key=lambda r: r.get("RowKey",""))
+    rows = list(
+        table.query_entities(
+            query_filter=f"PartitionKey eq '{pk}' and conversation_id eq '{conversation_id}' and route eq 'vision'",
+            select=["RowKey", "meta_json"],
+        )
+    )
+    rows.sort(key=lambda r: r.get("RowKey", ""))
     for r in reversed(rows):
         try:
             meta = r.get("meta_json")
-            if not meta: continue
+            if not meta:
+                continue
             import json
+
             m = json.loads(meta)
             p = (m or {}).get("vision_file_path")
-            if p: return p
+            if p:
+                return p
+        except Exception:
+            pass
+    return None
+
+
+def get_last_architecture_file_path(
+    claims: dict, conversation_id: str
+) -> Optional[str]:
+    """Récupère le dernier meta.architecture_file_path sur la conv (vision_architecture)."""
+    table: TableClient = _chat_table_cached()
+    if not table:
+        return None
+    pk = _pk_from_claims(claims)
+    rows = list(
+        table.query_entities(
+            query_filter=(
+                f"PartitionKey eq '{pk}' and conversation_id eq '{conversation_id}' and route eq 'vision_architecture'"
+            ),
+            select=["RowKey", "meta_json"],
+        )
+    )
+    rows.sort(key=lambda r: r.get("RowKey", ""))
+    for r in reversed(rows):
+        try:
+            import json
+
+            m = json.loads(r.get("meta_json") or "{}")
+            p = (m or {}).get("architecture_file_path")
+            if p:
+                return p
         except Exception:
             pass
     return None

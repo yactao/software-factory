@@ -110,6 +110,25 @@ KIMI_MODEL_SINGLE = os.getenv("KIMI_MODEL_SINGLE", "kimi-k2-turbo-preview")
 # Modèle Kimi utilisé pour le cas "global PDF"
 KIMI_MODEL_GLOBAL = os.getenv("KIMI_MODEL_GLOBAL", "kimi-k2-turbo-preview")
 
+# === Choix du fournisseur LLM (RAG et Aïna Finance) ===
+# Valeurs: kimi | openai | azure_openai
+RAG_LLM_PROVIDER = os.getenv("RAG_LLM_PROVIDER", "kimi").strip().lower()
+FINANCE_LLM_PROVIDER = os.getenv("FINANCE_LLM_PROVIDER", "kimi").strip().lower()
+
+# Modèles par usage (si provider = openai ou azure_openai)
+RAG_MODEL_SINGLE = os.getenv("RAG_MODEL_SINGLE", KIMI_MODEL_SINGLE)
+RAG_MODEL_GLOBAL = os.getenv("RAG_MODEL_GLOBAL", KIMI_MODEL_GLOBAL)
+RAG_MODEL_CLASSIF = os.getenv("RAG_MODEL_CLASSIF", RAG_MODEL_SINGLE)
+FINANCE_MODEL = os.getenv("FINANCE_MODEL", KIMI_MODEL_SINGLE)
+
+# OpenAI (platform) - pour RAG / Finance quand provider = openai
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+
+# Azure OpenAI - déploiements par usage (fallback: AZURE_OAI_DEPLOYMENT)
+RAG_AZURE_DEPLOYMENT = os.getenv("RAG_AZURE_DEPLOYMENT", "").strip() or None
+RAG_GLOBAL_AZURE_DEPLOYMENT = os.getenv("RAG_GLOBAL_AZURE_DEPLOYMENT", "").strip() or None
+FINANCE_AZURE_DEPLOYMENT = os.getenv("FINANCE_AZURE_DEPLOYMENT", "").strip() or None
+
 # PDF global (toutes fiches d’audit) stocké sur Azure Blob
 GLOBAL_AUDIT_CONTAINER = os.getenv("GLOBAL_AUDIT_CONTAINER", "audit-global")
 GLOBAL_AUDIT_BLOB_PATH = os.getenv(
@@ -143,6 +162,9 @@ TOKEN_URL = f"{AUTHORITY}/oauth2/v2.0/token"
 
 # Container pour les images d'audit
 AUDIT_IMAGE_CONTAINER = os.getenv("AUDIT_IMAGE_CONTAINER", "auditimage")
+
+# Container pour les images Aïna Vision Architecture (plans annotés)
+ARCHITECTURE_IMAGE_CONTAINER = os.getenv("ARCHITECTURE_IMAGE_CONTAINER", "architecture-images")
 # === CORS util ===
 def _parse_origins(env_value: str) -> list[str]:
     if not env_value:

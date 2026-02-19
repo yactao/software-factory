@@ -8,8 +8,7 @@ import numpy as np
 import pandas as pd
 from fastapi import HTTPException
 
-from app.core.config import KIMI_MODEL_SINGLE
-from app.services.kimi_client import get_kimi_client
+from app.services.llm_provider import get_llm_client_and_model, llm_chat_completion_with_client
 from app.services.blob_finance_excel import download_finance_excel_to_temp
 
 
@@ -207,36 +206,18 @@ def answer_finance_with_kimi(
         "Réponds strictement au format JSON demandé.\n"
     )
 
-    client = get_kimi_client()
-
+    client, model = get_llm_client_and_model("finance")
     messages = [
         {"role": "system", "content": system_content},
         {"role": "user", "content": user_prompt},
     ]
 
     try:
-        completion = client.chat.completions.create(
-            model=KIMI_MODEL_SINGLE,
-            messages=messages,
-            temperature=0.2,
-            max_tokens=2500,
+        raw_text = llm_chat_completion_with_client(
+            client, model, messages, temperature=0.2, max_tokens=2500
         )
     except Exception as e:
-        raise HTTPException(500, f"Erreur Kimi finance: {e}")
-
-    msg = completion.choices[0].message
-
-    # Gestion du contenu renvoyé string ou segments
-    if isinstance(msg.content, str):
-        raw_text = msg.content
-    else:
-        parts: List[str] = []
-        for part in msg.content:
-            if isinstance(part, dict) and part.get("type") in ("output_text", "text"):
-                parts.append(part.get("text", ""))
-            elif isinstance(part, str):
-                parts.append(part)
-        raw_text = " ".join(parts).strip()
+        raise HTTPException(500, f"Erreur LLM finance: {e}")
 
     raw_text = (raw_text or "").strip()
 
