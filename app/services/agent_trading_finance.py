@@ -1,6 +1,6 @@
 # app/services/agent_trading_finance.py
 """
-Multi-Excel finance agent: reads ALL .xlsx files from FINANCE_CONTAINER,
+Multi-Excel finance agent: reads ALL .xlsx files from FINANCE_CONTAINER_TRADING,
 builds a single multi-document JSON payload, calls the same LLM provider as finance,
 and returns (answer_text, chart, rows) with doc_id on each row. Anti-hallucination
 validation ensures returned rows exactly match source data.
@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from fastapi import HTTPException
 
-from app.core.config import FINANCE_CONTAINER
+from app.core.config import FINANCE_CONTAINER_TRADING
 from app.services.blob_trading_finance_excel import (
     list_excel_blobs_in_container,
     download_excel_blob_to_temp,
@@ -99,9 +99,9 @@ def answer_trading_finance_with_kimi(
     if not q:
         raise HTTPException(400, "Question vide.")
 
-    container = (FINANCE_CONTAINER or "").strip()
+    container = (FINANCE_CONTAINER_TRADING or "").strip()
     if not container:
-        raise HTTPException(500, "FINANCE_CONTAINER non configuré.")
+        raise HTTPException(500, "FINANCE_CONTAINER_TRADING non configuré.")
 
     # 1) List .xlsx blobs
     try:

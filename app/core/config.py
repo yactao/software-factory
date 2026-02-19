@@ -138,6 +138,7 @@ GLOBAL_AUDIT_BLOB_PATH = os.getenv(
 
 # Aïna Finance
 FINANCE_CONTAINER = os.getenv("FINANCE_CONTAINER", "audit-global")
+FINANCE_CONTAINER_TRADING = os.getenv("FINANCE_CONTAINER_TRADING", "trading-finance")
 FINANCE_BLOB_PATH = os.getenv("FINANCE_BLOB_PATH", "audit-magasin.xlsx")
 
 VET_INDEX_NAME: str = os.getenv("VET_INDEX_NAME", "vet-knowledge-index")
