@@ -31,17 +31,14 @@ def _search_docs(question: str, filters: Optional[Dict[str, Any]], k: int = RETR
     url = f"{AZURE_SEARCH_ENDPOINT}/indexes/{AZURE_SEARCH_INDEX}/docs/search?api-version={AZURE_SEARCH_API_VER}"
     headers = {"Content-Type": "application/json", "api-key": AZURE_SEARCH_API_KEY}
 
-    # IMPORTANT: pas de @search.captions dans $select quand on est en simple
-    # (sinon Azure peut râler sur des champs spéciaux non supportés)
     select_fields_simple = (
         "id,entity_type,source_container,file_name,content,"
         "magasin_name,magasin_code,pdf_blob_url,image_blob_container,image_blob_urls,"
-        "cv_person_name,cv_specialty,cv_emails,cv_phones,cv_blob_url,extracted_at,"
-        "@search.score"
+        "cv_person_name,cv_specialty,cv_emails,cv_phones,cv_blob_url,"
+        "itemId,name,siteId,siteUrl,driveId,webUrl,path,lastModified,indexedAt,"
+        "extracted_at,allowed_users,@search.score"
     )
 
-
-    # --------------- Requête 1: SIMPLE (toujours) ---------------
     payload_simple: Dict[str, Any] = {
         "search": question,
         "queryType": "simple",
@@ -49,72 +46,70 @@ def _search_docs(question: str, filters: Optional[Dict[str, Any]], k: int = RETR
         "answers": "none",
         "select": select_fields_simple,
     }
+
+    # =========================
+    # BUILD FILTER (ORIGINAL)
+    # =========================
     odata_filter = _build_odata_filter(filters)
+
+    # entity_type filter
+    entity_type = filters.get("entity_type") if isinstance(filters, dict) else None
+    if entity_type:
+        et_filter = f"entity_type eq '{entity_type}'"
+        odata_filter = f"({odata_filter}) and {et_filter}" if odata_filter else et_filter
+
+    # =========================
+    # 🧠 DOCUMENT GROUNDING (NEW)
+    # =========================
+    doc_scope = filters.get("doc_scope") if isinstance(filters, dict) else None
+
+    if isinstance(doc_scope, dict):
+        scope_type = doc_scope.get("type")
+        scope_value = doc_scope.get("value")
+
+        if scope_value:
+            scope_value = _odata_escape(str(scope_value))
+
+            if scope_type == "sharepoint":
+                scope_filter = f"itemId eq '{scope_value}'"
+
+            elif scope_type == "audit":
+                scope_filter = f"file_name eq '{scope_value}'"
+
+            elif scope_type == "cv":
+                scope_filter = f"cv_blob_url eq '{scope_value}'"
+
+            else:
+                scope_filter = None
+
+            if scope_filter:
+                odata_filter = f"({odata_filter}) and {scope_filter}" if odata_filter else scope_filter
+
+    # apply filter
     if odata_filter:
         payload_simple["filter"] = odata_filter
 
+    # =========================
+    # EXECUTE SEARCH
+    # =========================
     try:
         resp = requests.post(url, headers=headers, json=payload_simple, timeout=20)
     except RequestException as e:
-        raise HTTPException(502, f"Seaarch unreachable: {e}")
-    # Si ça passe en simple, on retourne tout de suite
+        raise HTTPException(502, f"Search unreachable: {e}")
+
     if resp.status_code < 300:
         return resp.json()
 
-    # Si l’échec vient d’un $select invalide, on retire $select et on retente en simple
     txt = resp.text or ""
+
+    # retry without select if needed
     if ("Could not find a property named" in txt) or ("Parameter name: $select" in txt):
         payload_simple.pop("select", None)
         resp2 = requests.post(url, headers=headers, json=payload_simple, timeout=20)
         if resp2.status_code < 300:
             return resp2.json()
-        # Si ça échoue encore, on continue le flux ci-dessous avec resp2
         resp = resp2
-        txt = resp.text or ""
 
-    # --------------- Optionnel: Requête 2 SEMANTIC (seulement si autorisé + index prêt) ---------------
-    # Active ce test UNIQUEMENT si tu as créé une semantic configuration 'default'
-    # et que tu as mis RAG_ALLOW_SEMANTIC=1 dans l'env.
-    try_semantic = os.getenv("RAG_ALLOW_SEMANTIC", "0") == "1"
-    if try_semantic:
-        payload_sem: Dict[str, Any] = {
-            "search": question,
-            "queryType": "semantic",
-            "semanticConfiguration": os.getenv("RAG_SEM_CONFIG", "default"),
-            "top": max(1, min(k, 1000)),
-            "answers": "none",
-            "captions": "extractive",
-            "select": (
-                "id,doc_id,file_name,chunk_type,section_path,page,"
-                "content,content_raw,table_markdown,checkbox_lines,"
-                "token_count,chunk_index,chunk_count,hash,"
-                "@search.score,@search.rerankerScore,@search.captions"
-            ),
-        }
-        if odata_filter:
-            payload_sem["filter"] = odata_filter
-
-        resp_sem = requests.post(url, headers=headers, json=payload_sem, timeout=20)
-        if resp_sem.status_code < 300:
-            return resp_sem.json()
-
-        sem_txt = resp_sem.text or ""
-        # Si l’index N’A PAS de semantic config, on NE ré-essaie pas en semantic
-        if ("semanticconfiguration" in sem_txt.lower()) or ("querytype" in sem_txt.lower() and "semantic" in sem_txt.lower()):
-            # On retombe explicitement en simple (déjà tenté ci-dessus),
-            # donc on renverra l’erreur simple ci-dessous.
-            pass
-        else:
-            # On tente un repli $select en semantic (au cas où certains champs manquent)
-            if ("Could not find a property named" in sem_txt) or ("Parameter name: $select" in sem_txt):
-                payload_sem.pop("select", None)
-                resp_sem2 = requests.post(url, headers=headers, json=payload_sem, timeout=20)
-                if resp_sem2.status_code < 300:
-                    return resp_sem2.json()
-            # Si on arrive ici, l’essai semantic a échoué pour une autre raison;
-            # on laissera tomber sur l’erreur simple plus bas.
-
-    # --------------- Si on est ici: tout a échoué ---------------
     raise HTTPException(resp.status_code, f"Search error: {resp.text}")
 
 def _search_trading_docs(question: str, filters: Optional[Dict[str, Any]], k: int = RETRIEVAL_K) -> Dict[str, Any]:
