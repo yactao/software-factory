@@ -24,6 +24,7 @@ from app.routers.vet_doc import router as vet_doc_router
 from app.routers.aina_vet_finance import router as vet_finance_aina_router
 from app.routers.routes_email import router as email_router
 from app.routers.routes_email_attachments import router as email_attachments_router
+from app.routers.dev import router as dev_router
 
 
 # Mount routers
@@ -49,6 +50,7 @@ app.include_router(vet_doc_router)
 app.include_router(vet_finance_aina_router)
 app.include_router(email_router)
 app.include_router(email_attachments_router)
+app.include_router(dev_router)
 
 
 # Startup checks (inchangés)

@@ -76,4 +76,8 @@ class VetFinanceRequest(BaseModel):
 
 class EmailRequest(BaseModel):
     question: str
-   
+    
+class DevRequest(BaseModel):
+    question: str
+    language: Optional[str] = "python"
+    conversation_id: Optional[str] = None
