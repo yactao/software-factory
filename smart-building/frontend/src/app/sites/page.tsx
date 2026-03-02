@@ -247,7 +247,7 @@ export default function SitesListPage() {
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-slate-900 dark:text-white text-sm">{site.name}</p>
-                                                    <p className="text-[10px] uppercase text-slate-500 dark:text-muted-foreground mt-0.5 tracking-widest">{site.organization?.name ? `Client : ${site.organization.name}` : site.id.split('-')[0]}</p>
+                                                    <p className="text-[10px] uppercase text-slate-500 dark:text-muted-foreground mt-0.5 tracking-widest">{site.organization?.name ? `Client : ${site.organization.name}` : "Client non défini"}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -291,64 +291,66 @@ export default function SitesListPage() {
             </div>
 
             {/* Modal: Add Site */}
-            {isAddSiteOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-                    <div className="w-full max-w-md bg-white dark:bg-[#0B1120] rounded-2xl border border-slate-200 dark:border-white/10 p-6 shadow-2xl relative">
-                        <button onClick={() => setIsAddSiteOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">
-                            <Plus className="h-5 w-5 rotate-45" />
-                        </button>
-                        <h2 className="text-xl font-bold mb-6 text-slate-900 dark:text-white flex items-center">
-                            <Plus className="w-5 h-5 mr-2 text-primary" />
-                            Créer un Nouveau Site
-                        </h2>
-                        <form onSubmit={handleCreateSite} className="space-y-4">
-                            <div>
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nom du bâtiment *</label>
-                                <input type="text" required value={newSite.name} onChange={e => setNewSite({ ...newSite, name: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Tour Alpha" />
-                            </div>
+            {
+                isAddSiteOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+                        <div className="w-full max-w-md bg-white dark:bg-[#0B1120] rounded-2xl border border-slate-200 dark:border-white/10 p-6 shadow-2xl relative">
+                            <button onClick={() => setIsAddSiteOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                                <Plus className="h-5 w-5 rotate-45" />
+                            </button>
+                            <h2 className="text-xl font-bold mb-6 text-slate-900 dark:text-white flex items-center">
+                                <Plus className="w-5 h-5 mr-2 text-primary" />
+                                Créer un Nouveau Site
+                            </h2>
+                            <form onSubmit={handleCreateSite} className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nom du bâtiment *</label>
+                                    <input type="text" required value={newSite.name} onChange={e => setNewSite({ ...newSite, name: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Tour Alpha" />
+                                </div>
 
-                            <div>
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Type de bâtiment *</label>
-                                <select value={newSite.type} onChange={e => setNewSite({ ...newSite, type: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
-                                    <option value="Bureaux">Bureaux / Tertiaire</option>
-                                    <option value="Magasin">Magasin / Retail</option>
-                                    <option value="Usine">Usine / Industriel</option>
-                                    <option value="Logistique">Logistique / Entrepôt</option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Type de bâtiment *</label>
+                                    <select value={newSite.type} onChange={e => setNewSite({ ...newSite, type: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors">
+                                        <option value="Bureaux">Bureaux / Tertiaire</option>
+                                        <option value="Magasin">Magasin / Retail</option>
+                                        <option value="Usine">Usine / Industriel</option>
+                                        <option value="Logistique">Logistique / Entrepôt</option>
+                                    </select>
+                                </div>
 
-                            <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-200 dark:border-white/10 mt-4">
-                                <label className="text-sm font-bold text-slate-900 dark:text-white mb-2 block">Localisation</label>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="text-xs text-slate-500 dark:text-slate-400">Adresse</label>
-                                        <input type="text" value={newSite.address} onChange={e => setNewSite({ ...newSite, address: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-200 dark:border-white/10 mt-4">
+                                    <label className="text-sm font-bold text-slate-900 dark:text-white mb-2 block">Localisation</label>
+                                    <div className="space-y-3">
                                         <div>
-                                            <label className="text-xs text-slate-500 dark:text-slate-400">Code postal</label>
-                                            <input type="text" value={newSite.postalCode} onChange={e => setNewSite({ ...newSite, postalCode: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" placeholder="ex: 75000" />
+                                            <label className="text-xs text-slate-500 dark:text-slate-400">Adresse</label>
+                                            <input type="text" value={newSite.address} onChange={e => setNewSite({ ...newSite, address: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs text-slate-500 dark:text-slate-400">Code postal</label>
+                                                <input type="text" value={newSite.postalCode} onChange={e => setNewSite({ ...newSite, postalCode: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" placeholder="ex: 75000" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-slate-500 dark:text-slate-400">Ville *</label>
+                                                <input type="text" required value={newSite.city} onChange={e => setNewSite({ ...newSite, city: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" />
+                                            </div>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-slate-500 dark:text-slate-400">Ville *</label>
-                                            <input type="text" required value={newSite.city} onChange={e => setNewSite({ ...newSite, city: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" />
+                                            <label className="text-xs text-slate-500 dark:text-slate-400">Pays</label>
+                                            <input type="text" value={newSite.country} onChange={e => setNewSite({ ...newSite, country: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" />
                                         </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-slate-500 dark:text-slate-400">Pays</label>
-                                        <input type="text" value={newSite.country} onChange={e => setNewSite({ ...newSite, country: e.target.value })} className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:border-primary/50 transition-colors" />
                                     </div>
                                 </div>
-                            </div>
 
-                            <button type="submit" className="w-full py-3 mt-6 bg-primary hover:bg-emerald-400 text-slate-900 dark:text-white font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                                Créer le Site
-                            </button>
-                        </form>
+                                <button type="submit" className="w-full py-3 mt-6 bg-primary hover:bg-emerald-400 text-slate-900 dark:text-white font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                                    Créer le Site
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 

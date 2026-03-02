@@ -273,9 +273,9 @@ export default function MappingPage() {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">ID Matériel / Adresse MAC / DevEUI</label>
+                                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest block">Identifiant Unique (S/N, MAC, DevEUI...)</label>
                                     <div className="flex gap-2">
-                                        <input type="text" placeholder="ex: 00:1A:2B:3C:4D:5E" className="flex-1 p-3.5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-primary font-mono uppercase transition-colors" />
+                                        <input type="text" placeholder="ex: 001A2B3C..." className="flex-1 p-3.5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-primary font-mono uppercase transition-colors" />
                                         <button className="px-5 bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/20 transition-colors flex items-center justify-center font-bold text-sm shadow-sm">
                                             <Search className="w-4 h-4" />
                                         </button>

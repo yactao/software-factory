@@ -34,6 +34,8 @@ interface Site {
     city: string;
     status: string;
     zones: Zone[];
+    organizationId?: string;
+    organization?: { id: string; name: string };
 }
 
 export default function SiteDashboardPage() {
@@ -182,10 +184,10 @@ export default function SiteDashboardPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-6 border-b border-slate-200 dark:border-white/5">
                 <div>
                     <button
-                        onClick={() => router.push('/sites')}
+                        onClick={() => router.push(site?.organization?.id ? `/clients/${site.organization.id}` : '/sites')}
                         className="flex items-center text-xs font-bold text-slate-500 hover:text-primary mb-3 transition-colors uppercase tracking-wider"
                     >
-                        <ArrowLeft className="w-3 h-3 mr-1" /> Retour à l&apos;annuaire des sites
+                        <ArrowLeft className="w-3 h-3 mr-1" /> Retour au client de rattachement
                     </button>
                     <div className="flex items-center text-slate-900 dark:text-white mb-2">
                         <Building2 className="h-8 w-8 mr-3 text-primary" />
