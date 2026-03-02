@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Reading } from './entities/reading.entity';
 import { Sensor } from './entities/sensor.entity';
+import { Gateway } from './entities/gateway.entity';
 
 @Injectable()
 export class MqttService implements OnModuleInit {
@@ -14,6 +15,8 @@ export class MqttService implements OnModuleInit {
         private readingRepo: Repository<Reading>,
         @InjectRepository(Sensor)
         private sensorRepo: Repository<Sensor>,
+        @InjectRepository(Gateway)
+        private gatewayRepo: Repository<Gateway>,
     ) { }
 
     onModuleInit() {
@@ -22,16 +25,55 @@ export class MqttService implements OnModuleInit {
         this.client.on('connect', () => {
             console.log('✅ Connected to MQTT Broker');
             this.client.subscribe('smartbuilding/+/+/telemetry');
+            this.client.subscribe('ubbee/provisioning/handshake');
         });
 
         this.client.on('message', async (topic, message) => {
             try {
                 const payload = JSON.parse(message.toString());
-                await this.handleMessage(payload);
+                if (topic === 'ubbee/provisioning/handshake') {
+                    await this.handleHandshake(payload);
+                } else if (topic.endsWith('/telemetry')) {
+                    await this.handleMessage(payload);
+                }
             } catch (err) {
-                console.error('❌ Error processing MQTT message:', err);
+                console.error(`❌ Error processing MQTT message on ${topic}:`, err);
             }
         });
+    }
+
+    private async handleHandshake(payload: any) {
+        const { mac } = payload;
+        if (!mac) return;
+
+        console.log(`🔌 Handshake reçu pour la MAC: ${mac}`);
+
+        // Vérifier dans la base de données si une passerelle a été provisionnée avec cette MAC
+        const gateway = await this.gatewayRepo.findOne({
+            where: { serialNumber: mac },
+            relations: ['site']
+        });
+
+        if (!gateway) {
+            console.log(`⚠️ U-Bot inconnu (${mac}), handshake refusé.`);
+            return;
+        }
+
+        // Si la Gateway est trouvée, on la passe "en ligne"
+        gateway.status = 'online';
+        await this.gatewayRepo.save(gateway);
+
+        const buildingId = gateway.site ? gateway.site.id : 'unknown-building';
+        console.log(`✅ U-Bot reconnu et passé online ! Assigation au site : ${buildingId}`);
+
+        // Réponse Cloud (Descente de configuration)
+        const configData = {
+            building_id: buildingId,
+            status: 'approved',
+            timestamp: new Date().toISOString()
+        };
+
+        this.client.publish(`ubbee/provisioning/${mac}/config`, JSON.stringify(configData));
     }
 
     private async handleMessage(payload: any) {

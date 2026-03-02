@@ -23,6 +23,7 @@ import { EventsGateway } from './iot/events.gateway';
 import { IntegrationsController } from './integrations.controller';
 import { UniversalMqttListenerService } from './iot/universal-mqtt-listener.service';
 import { CopilotModule } from './copilot/copilot.module';
+import { MqttService } from './mqtt.service';
 
 @Module({
   imports: [
@@ -40,7 +41,7 @@ import { CopilotModule } from './copilot/copilot.module';
     CopilotModule,
   ],
   controllers: [AppController, IntegrationsController],
-  providers: [AppService, SimulationService, RulesEngineService, PayloadFormatterService, EventsGateway, UniversalMqttListenerService],
+  providers: [AppService, SimulationService, RulesEngineService, PayloadFormatterService, EventsGateway, UniversalMqttListenerService, MqttService],
   exports: [AppService],
 })
 export class AppModule { }
