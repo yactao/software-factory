@@ -25,7 +25,6 @@ const navItems: NavItemType[] = [
     {
         name: "Infrastructure IoT", icon: Wifi, hasSub: true, subItems: [
             { name: "Vue d'ensemble", href: "/network" },
-            { name: "Inventaire Matériel", href: "/network/inventory" },
             { name: "Console IoT Live", href: "/network/console" },
             { name: "Appairage (No-Code)", href: "/admin/integrations/mapping" }
         ]

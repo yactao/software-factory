@@ -27,7 +27,7 @@ export function Header() {
                 .then(r => r.ok && r.json())
                 .then(data => {
                     if (data) {
-                        setOrganizations(data.filter((org: any) => org.id !== '11111111-1111-1111-1111-111111111111'));
+                        setOrganizations(data);
                     }
                 })
                 .catch(console.error);

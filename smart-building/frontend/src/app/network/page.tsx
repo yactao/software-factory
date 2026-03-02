@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Wifi, Activity, Server, AlertTriangle, CheckCircle2, XCircle, Search, RefreshCw, Cpu, Radio } from "lucide-react";
+import { Wifi, Activity, Server, AlertTriangle, CheckCircle2, XCircle, Search, RefreshCw, Cpu, Radio, Plus, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useTenant } from "@/lib/TenantContext";
@@ -10,6 +10,12 @@ export default function NetworkMonitoringPage() {
     const { authFetch } = useTenant();
     const [gateways, setGateways] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [sites, setSites] = useState<any[]>([]);
+
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newMac, setNewMac] = useState("");
+    const [newModel, setNewModel] = useState("U-Bot Pro v2");
+    const [preAssignSite, setPreAssignSite] = useState("");
 
     const fetchGateways = async () => {
         setLoading(true);
@@ -27,7 +33,20 @@ export default function NetworkMonitoringPage() {
 
     useEffect(() => {
         fetchGateways();
+        authFetch("http://localhost:3001/api/sites")
+            .then(res => res.json())
+            .then(data => setSites(data))
+            .catch(console.error);
     }, [authFetch]);
+
+    const handleAddHardware = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Dans un monde idéal, on appellerait le backend ici. Pour l'instant on ferme la modale.
+        setIsAddModalOpen(false);
+        setNewMac("");
+        setPreAssignSite("");
+        alert("Passerelle prénumérotée avec succès. Elle s'activera au branchement.");
+    };
 
     // KPI Calc
     const offlineGateways = gateways.filter(g => g.status === 'offline').length;
@@ -49,9 +68,12 @@ export default function NetworkMonitoringPage() {
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading ? "animate-spin" : "")} />
                         Actualiser
                     </button>
-                    <Link href="/onboarding" className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] flex items-center transition-all">
-                        Déployer une Passerelle
-                    </Link>
+                    <button
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] flex items-center transition-all"
+                    >
+                        <Plus className="w-5 h-5 mr-1" /> Provisionner un U-Bot
+                    </button>
                 </div>
             </div>
 
@@ -166,6 +188,77 @@ export default function NetworkMonitoringPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Modal Add Hardware */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white/[0.02]">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center">
+                                <Server className="w-5 h-5 mr-3 text-primary" /> Provisionner un U-Bot
+                            </h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                <Search className="w-5 h-5 rotate-45 transform" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddHardware} className="p-6 space-y-5">
+                            <div>
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Modèle de Passerelle</label>
+                                <select
+                                    value={newModel}
+                                    onChange={e => setNewModel(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all"
+                                >
+                                    <option>U-Bot Pro v2 (Raspberry Pi 5)</option>
+                                    <option>U-Bot Lite (Raspberry Pi 4)</option>
+                                    <option>U-Bot Outdoor Gateway</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block flex justify-between">
+                                    <span>Adresse MAC / Numéro de Série</span>
+                                    <span className="text-xs text-slate-500 font-normal">Identifiant unique</span>
+                                </label>
+                                <div className="relative">
+                                    <QrCode className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="EX: A1:B2:C3:D4:E5:F6"
+                                        value={newMac}
+                                        onChange={e => setNewMac(e.target.value)}
+                                        className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 font-mono uppercase text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none placeholder:font-sans placeholder:normal-case transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-200 dark:border-white/10">
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Pré-assignation Dynamique (Optionnel)</label>
+                                <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                                    Associez directement cette MAC à un de vos sites enregistrés. Lors de son branchement par le technicien, le U-Bot téléchargera sa configuration automatiquement.
+                                </p>
+                                <select
+                                    value={preAssignSite}
+                                    onChange={e => setPreAssignSite(e.target.value)}
+                                    className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-slate-900 dark:text-white focus:ring-1 focus:ring-primary outline-none transition-all"
+                                >
+                                    <option value="">-- Conserver dans le stock général (Non assigné) --</option>
+                                    {sites.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name} ({s.city})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="pt-6 flex justify-end gap-3">
+                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-5 py-2.5 rounded-xl font-bold bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors">Annuler</button>
+                                <button type="submit" className="px-5 py-2.5 rounded-xl font-bold bg-primary hover:bg-emerald-400 text-slate-900 dark:text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center">
+                                    <CheckCircle2 className="w-4 h-4 mr-2" /> Valider l'enregistrement
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

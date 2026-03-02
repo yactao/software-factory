@@ -46,7 +46,7 @@ export default function ClientsPage() {
                 if (currentTenant?.id && currentTenant.id !== '11111111-1111-1111-1111-111111111111') {
                     setOrganizations(data.filter((org: any) => org.id === currentTenant.id));
                 } else {
-                    setOrganizations(data.filter((org: any) => org.id !== '11111111-1111-1111-1111-111111111111'));
+                    setOrganizations(data);
                 }
             }
         } catch (err) {
