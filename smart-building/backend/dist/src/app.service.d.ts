@@ -24,18 +24,54 @@ export declare class AppService implements OnModuleInit {
     private rulesEngine;
     private eventsGateway;
     constructor(siteRepo: Repository<Site>, zoneRepo: Repository<Zone>, sensorRepo: Repository<Sensor>, readingRepo: Repository<Reading>, alertRepo: Repository<Alert>, orgRepo: Repository<Organization>, userRepo: Repository<User>, gatewayRepo: Repository<Gateway>, payloadFormatter: PayloadFormatterService, rulesEngine: RulesEngineService, eventsGateway: EventsGateway);
+    checkHealth(): Promise<{
+        status: string;
+        timestamp: string;
+        uptime: number;
+        memory: {
+            rss: string;
+            heapTotal: string;
+            heapUsed: string;
+        };
+        database: string;
+        error?: undefined;
+    } | {
+        status: string;
+        timestamp: string;
+        database: string;
+        error: string;
+        uptime?: undefined;
+        memory?: undefined;
+    }>;
     onModuleInit(): Promise<void>;
     getHello(): string;
-    getSites(orgId?: string): Promise<Site[]>;
+    getSites(orgId?: string): Promise<{
+        statusColor: string;
+        id: string;
+        name: string;
+        type: string;
+        address: string;
+        city: string;
+        postalCode: string;
+        country: string;
+        latitude: number;
+        longitude: number;
+        zones: Zone[];
+        organization: Organization;
+        organizationId: string;
+        gateways: Gateway[];
+    }[]>;
     getOrganizations(): Promise<{
         sitesCount: number;
         usersCount: number;
+        gatewaysCount: number;
         devicesCount: number;
         id: string;
         name: string;
         type: string;
         country: string;
-        region: string;
+        contactFirstName: string;
+        contactLastName: string;
         city: string;
         address: string;
         postalCode: string;
@@ -51,6 +87,7 @@ export declare class AppService implements OnModuleInit {
         users: User[];
         sites: Site[];
     }[]>;
+    private geocodeAddress;
     createOrganization(orgData: any): Promise<Organization[]>;
     updateOrganization(id: string, orgData: any): Promise<Organization | null>;
     deleteOrganization(id: string): Promise<import("typeorm").DeleteResult>;

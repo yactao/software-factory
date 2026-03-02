@@ -27,6 +27,9 @@ let AppController = class AppController {
     getHello() {
         return this.appService.getHello();
     }
+    async getHealth() {
+        return this.appService.checkHealth();
+    }
     getSites(orgId, role) {
         const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
         const filterOrgId = (role === 'SUPER_ADMIN' && isGlobalContext) ? undefined : orgId;
@@ -60,11 +63,15 @@ let AppController = class AppController {
         }
         return this.appService.createZone(zoneData, zoneData.siteId);
     }
-    getSensors(orgId) {
-        return this.appService.getSensors(orgId);
+    getSensors(orgId, role) {
+        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
+        const filterOrgId = (role === 'SUPER_ADMIN' && isGlobalContext) ? undefined : orgId;
+        return this.appService.getSensors(filterOrgId);
     }
-    getGateways(orgId) {
-        return this.appService.getGateways(orgId);
+    getGateways(orgId, role) {
+        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
+        const filterOrgId = (role === 'SUPER_ADMIN' && isGlobalContext) ? undefined : orgId;
+        return this.appService.getGateways(filterOrgId);
     }
     createGateway(gatewayData) {
         return this.appService.createGateway(gatewayData);
@@ -79,14 +86,18 @@ let AppController = class AppController {
     getAverageTemperature(orgId, siteId) {
         return this.appService.getAverageTemperature(orgId, siteId);
     }
-    getAlerts(orgId, siteId) {
-        return this.appService.getAlerts(orgId, siteId);
+    getAlerts(orgId, role, siteId) {
+        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
+        const filterOrgId = (role === 'SUPER_ADMIN' && isGlobalContext) ? undefined : orgId;
+        return this.appService.getAlerts(filterOrgId, siteId);
     }
     getHvacPerformance(orgId, siteId) {
         return this.appService.getHvacPerformance(orgId, siteId);
     }
-    getRules(orgId) {
-        return this.rulesEngineService.getRules(orgId);
+    getRules(orgId, role) {
+        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
+        const filterOrgId = (role === 'SUPER_ADMIN' && isGlobalContext) ? undefined : orgId;
+        return this.rulesEngineService.getRules(filterOrgId);
     }
     createRule(orgId, ruleData) {
         return this.rulesEngineService.createRule({ ...ruleData, organizationId: orgId });
@@ -123,6 +134,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", String)
 ], AppController.prototype, "getHello", null);
+__decorate([
+    (0, common_1.Get)('health'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "getHealth", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('sites'),
@@ -202,16 +219,18 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('sensors'),
     __param(0, (0, common_1.Headers)('x-organization-id')),
+    __param(1, (0, common_1.Headers)('x-user-role')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AppController.prototype, "getSensors", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('gateways'),
     __param(0, (0, common_1.Headers)('x-organization-id')),
+    __param(1, (0, common_1.Headers)('x-user-role')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AppController.prototype, "getGateways", null);
 __decorate([
@@ -253,9 +272,10 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('alerts'),
     __param(0, (0, common_1.Headers)('x-organization-id')),
-    __param(1, (0, common_1.Query)('siteId')),
+    __param(1, (0, common_1.Headers)('x-user-role')),
+    __param(2, (0, common_1.Query)('siteId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], AppController.prototype, "getAlerts", null);
 __decorate([
@@ -271,8 +291,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('rules'),
     __param(0, (0, common_1.Headers)('x-organization-id')),
+    __param(1, (0, common_1.Headers)('x-user-role')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AppController.prototype, "getRules", null);
 __decorate([

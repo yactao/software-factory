@@ -5,7 +5,8 @@ export declare class Organization {
     name: string;
     type: string;
     country: string;
-    region: string;
+    contactFirstName: string;
+    contactLastName: string;
     city: string;
     address: string;
     postalCode: string;

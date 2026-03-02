@@ -22,16 +22,21 @@ export function Header() {
     const [organizations, setOrganizations] = useState<any[]>([]);
 
     useEffect(() => {
-        if (isAdmin) {
-            authFetch("http://localhost:3001/api/organizations")
-                .then(r => r.ok && r.json())
-                .then(data => {
-                    if (data) {
-                        setOrganizations(data);
-                    }
-                })
-                .catch(console.error);
-        }
+        const fetchOrgs = () => {
+            if (isAdmin) {
+                authFetch("http://localhost:3001/api/organizations")
+                    .then(r => r.ok && r.json())
+                    .then(data => {
+                        if (data) setOrganizations(data);
+                    })
+                    .catch(console.error);
+            }
+        };
+
+        fetchOrgs();
+
+        window.addEventListener("clients_updated", fetchOrgs);
+        return () => window.removeEventListener("clients_updated", fetchOrgs);
     }, [isAdmin, authFetch]);
 
     useEffect(() => {

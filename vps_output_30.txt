@@ -1,7 +1,8 @@
 ==== PULL DES NOUVEAUX FICHIERS FRONTEND ====
 From https://github.com/yactao/gravity-lab
-   f183f4f..20edb8a  main       -> origin/main
-HEAD is now at 20edb8a style(ui): correct sidebar logo subtitle to BY IOTEVA
+   31ca5d2..59faed4  main       -> origin/main
+warning: unable to rmdir 'superpowers': Directory not empty
+HEAD is now at 59faed4 feat(ui): merge inventory into network dashboard and fix clients visibility
 Already up to date.
 \n==== RECOMPILATION FRONTEND ====
 npm warn EBADENGINE Unsupported engine {
@@ -10,9 +11,9 @@ npm warn EBADENGINE   required: { node: '>=22.0.0', npm: '>=10.5.1' },
 npm warn EBADENGINE   current: { node: 'v20.20.0', npm: '10.8.2' }
 npm warn EBADENGINE }
 
-up to date, audited 484 packages in 1s
+up to date, audited 563 packages in 3s
 
-154 packages are looking for funding
+220 packages are looking for funding
   run `npm fund` for details
 
 2 vulnerabilities (1 moderate, 1 high)
@@ -21,6 +22,11 @@ To address all issues, run:
   npm audit fix
 
 Run `npm audit` for details.
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.11.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.0
+npm notice To update run: npm install -g npm@11.11.0
+npm notice
 
 > frontend@0.1.0 build
 > next build
@@ -36,14 +42,14 @@ Run `npm audit` for details.
 - Environments: .env.production
 
   Creating an optimized production build ...
-✓ Compiled successfully in 15.6s
+✓ Compiled successfully in 27.1s
   Running TypeScript ...
   Collecting page data using 1 worker ...
-  Generating static pages using 1 worker (0/19) ...
-  Generating static pages using 1 worker (4/19) 
-  Generating static pages using 1 worker (9/19) 
-  Generating static pages using 1 worker (14/19) 
-✓ Generating static pages using 1 worker (19/19) in 556.5ms
+  Generating static pages using 1 worker (0/22) ...
+  Generating static pages using 1 worker (5/22) 
+  Generating static pages using 1 worker (10/22) 
+  Generating static pages using 1 worker (16/22) 
+✓ Generating static pages using 1 worker (22/22) in 526.2ms
   Finalizing page optimization ...
 
 Route (app)
@@ -60,12 +66,15 @@ Route (app)
 ├ ○ /maintenance
 ├ ○ /map
 ├ ○ /network
+├ ○ /network/console
+├ ○ /network/system-health
 ├ ○ /onboarding
 ├ ○ /rules
 ├ ○ /settings
 ├ ○ /sites
 ├ ƒ /sites/[id]
-└ ○ /updates
+├ ○ /updates
+└ ○ /welcome
 
 
 ○  (Static)   prerendered as static content

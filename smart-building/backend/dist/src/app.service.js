@@ -52,6 +52,31 @@ let AppService = class AppService {
         this.rulesEngine = rulesEngine;
         this.eventsGateway = eventsGateway;
     }
+    async checkHealth() {
+        try {
+            await this.orgRepo.count();
+            const memoryUsage = process.memoryUsage();
+            return {
+                status: 'OK',
+                timestamp: new Date().toISOString(),
+                uptime: process.uptime(),
+                memory: {
+                    rss: `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`,
+                    heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)} MB`,
+                    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`,
+                },
+                database: 'Connected'
+            };
+        }
+        catch (error) {
+            return {
+                status: 'ERROR',
+                timestamp: new Date().toISOString(),
+                database: 'Disconnected',
+                error: error instanceof Error ? error.message : 'Unknown'
+            };
+        }
+    }
     async onModuleInit() {
         const orgCount = await this.orgRepo.count();
         if (orgCount === 0) {
@@ -98,6 +123,20 @@ let AppService = class AppService {
             const s5 = this.sensorRepo.create({ name: 'Compteur Global CASA', type: 'energy', externalId: 's-nrg-02', zone: zC1 });
             const s6 = this.sensorRepo.create({ name: 'Sous-compteur CVC CASA', type: 'hvac_energy', externalId: 's-hvac-02', zone: zC1 });
             await this.sensorRepo.save([s1, s2, s3, s4, s5, s6]);
+            const g1 = this.gatewayRepo.create({ name: 'GW Centrale UBBEE', serialNumber: 'GW-UB-001', status: 'online', protocol: 'lorawan', ipAddress: '192.168.1.10', site: sU1 });
+            const g2 = this.gatewayRepo.create({ name: 'GW Secondaire UBBEE', serialNumber: 'GW-UB-002', status: 'offline', protocol: 'zigbee', ipAddress: '192.168.1.11', site: sU1 });
+            const g3 = this.gatewayRepo.create({ name: 'GW Magasin RIVOLI', serialNumber: 'GW-CS-001', status: 'online', protocol: 'lorawan', site: sC1 });
+            const g4 = this.gatewayRepo.create({ name: 'GW Magasin RIVOLI 2', serialNumber: 'GW-CS-002', status: 'online', protocol: 'zigbee', site: sC1 });
+            const g5 = this.gatewayRepo.create({ name: 'GW Entrepôt M.', serialNumber: 'GW-LM-001', status: 'offline', protocol: 'lorawan', site: sL3 });
+            await this.gatewayRepo.save([g1, g2, g3, g4, g5]);
+            s1.gateway = g1;
+            s2.gateway = g3;
+            await this.sensorRepo.save([s1, s2]);
+            const a1 = this.alertRepo.create({ message: 'Perte de communication avec capteur', severity: 'CRITICAL', timestamp: new Date(), active: true, sensor: s1 });
+            const a2 = this.alertRepo.create({ message: 'Taux CO2 extrêmement élevé (> 1200 ppm)', severity: 'CRITICAL', timestamp: new Date(), active: true, sensor: s2 });
+            const a3 = this.alertRepo.create({ message: 'Batterie faible (10%)', severity: 'WARNING', timestamp: new Date(), active: true, sensor: s1 });
+            const a4 = this.alertRepo.create({ message: 'Surchauffe détectée CVC', severity: 'WARNING', timestamp: new Date(), active: true, sensor: s4 });
+            await this.alertRepo.save([a1, a2, a3, a4]);
             console.log('✅ Database seeded with Multi-Tenant structure!');
         }
         const energyCount = await this.sensorRepo.count({ where: { type: 'energy' } });
@@ -119,8 +158,33 @@ let AppService = class AppService {
         return 'SmartBuild API Operational';
     }
     async getSites(orgId) {
-        const where = orgId ? { organizationId: orgId } : {};
-        return this.siteRepo.find({ where, relations: ['zones'] });
+        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
+        const where = orgId && !isGlobalContext ? { organizationId: orgId } : {};
+        const sites = await this.siteRepo.find({ where, relations: ['zones'] });
+        let activeAlertsQuery = this.alertRepo.createQueryBuilder('alert')
+            .leftJoinAndSelect('alert.sensor', 'sensor')
+            .leftJoinAndSelect('sensor.zone', 'zone')
+            .where('alert.active = :active', { active: true });
+        if (orgId && !isGlobalContext) {
+            activeAlertsQuery = activeAlertsQuery
+                .leftJoin('zone.site', 'site')
+                .andWhere('site.organizationId = :orgId', { orgId });
+        }
+        const alerts = await activeAlertsQuery.getMany();
+        return sites.map(site => {
+            const siteAlerts = alerts.filter(a => site.zones.some(z => z.id === a.sensor?.zone?.id));
+            const hasCritical = siteAlerts.some(a => a.severity === 'CRITICAL');
+            const hasWarning = siteAlerts.some(a => a.severity === 'WARNING');
+            let statusColor = 'green';
+            if (hasCritical)
+                statusColor = 'red';
+            else if (hasWarning)
+                statusColor = 'orange';
+            return {
+                ...site,
+                statusColor
+            };
+        });
     }
     async getOrganizations() {
         const orgs = await this.orgRepo.find({
@@ -128,10 +192,13 @@ let AppService = class AppService {
         });
         return orgs.map(org => {
             let devicesCount = 0;
+            let gatewaysCount = 0;
             if (org.sites) {
                 org.sites.forEach(site => {
-                    if (site.gateways)
+                    if (site.gateways) {
                         devicesCount += site.gateways.length;
+                        gatewaysCount += site.gateways.length;
+                    }
                     if (site.zones) {
                         site.zones.forEach(zone => {
                             if (zone.sensors)
@@ -144,9 +211,46 @@ let AppService = class AppService {
                 ...org,
                 sitesCount: org.sites ? org.sites.length : 0,
                 usersCount: org.users ? org.users.length : 0,
+                gatewaysCount,
                 devicesCount
             };
         });
+    }
+    async geocodeAddress(siteData) {
+        if (siteData.latitude && siteData.longitude)
+            return;
+        const queriesToTry = [];
+        const countrySuffix = siteData.country ? `, ${siteData.country}` : '';
+        if (siteData.address) {
+            queriesToTry.push(`${siteData.address}${siteData.postalCode ? ' ' + siteData.postalCode : ''}${siteData.city ? ', ' + siteData.city : ''}${countrySuffix}`);
+        }
+        if (siteData.postalCode && siteData.city) {
+            queriesToTry.push(`${siteData.postalCode} ${siteData.city}${countrySuffix}`);
+        }
+        if (siteData.city) {
+            queriesToTry.push(`${siteData.city}${countrySuffix}`);
+        }
+        for (const query of queriesToTry) {
+            if (!query)
+                continue;
+            try {
+                const encodedQuery = encodeURIComponent(query);
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}`, {
+                    headers: { 'User-Agent': 'SmartBuildingApp/1.0' }
+                });
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    siteData.latitude = parseFloat(data[0].lat);
+                    siteData.longitude = parseFloat(data[0].lon);
+                    console.log(`Geocoded '${query}' to ${siteData.latitude}, ${siteData.longitude}`);
+                    return;
+                }
+            }
+            catch (err) {
+                console.error(`Geocoding failed for query '${query}':`, err);
+            }
+        }
+        console.warn(`Could not geocode any of the queries for site: ${siteData.name}`);
     }
     async createOrganization(orgData) {
         const newOrg = this.orgRepo.create(orgData);
@@ -163,22 +267,8 @@ let AppService = class AppService {
         const org = await this.orgRepo.findOne({ where: { id: orgId } });
         if (!org)
             throw new Error("Organization not found");
-        if (siteData.address && (!siteData.latitude || !siteData.longitude)) {
-            try {
-                const query = encodeURIComponent(`${siteData.address}${siteData.postalCode ? ' ' + siteData.postalCode : ''}${siteData.city ? ', ' + siteData.city : ''}`);
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`, {
-                    headers: { 'User-Agent': 'SmartBuildingApp/1.0' }
-                });
-                const data = await response.json();
-                if (data && data.length > 0) {
-                    siteData.latitude = parseFloat(data[0].lat);
-                    siteData.longitude = parseFloat(data[0].lon);
-                    console.log(`Geocoded ${siteData.address} to ${siteData.latitude}, ${siteData.longitude}`);
-                }
-            }
-            catch (err) {
-                console.error('Geocoding failed:', err);
-            }
+        if (!siteData.latitude || !siteData.longitude) {
+            await this.geocodeAddress(siteData);
         }
         const newSite = this.siteRepo.create({
             ...siteData,
@@ -187,22 +277,8 @@ let AppService = class AppService {
         return this.siteRepo.save(newSite);
     }
     async updateSite(id, siteData) {
-        if (siteData.address && (!siteData.latitude || !siteData.longitude)) {
-            try {
-                const query = encodeURIComponent(`${siteData.address}${siteData.postalCode ? ' ' + siteData.postalCode : ''}${siteData.city ? ', ' + siteData.city : ''}`);
-                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`, {
-                    headers: { 'User-Agent': 'SmartBuildingApp/1.0' }
-                });
-                const data = await response.json();
-                if (data && data.length > 0) {
-                    siteData.latitude = parseFloat(data[0].lat);
-                    siteData.longitude = parseFloat(data[0].lon);
-                    console.log(`Geocoded ${siteData.address} to ${siteData.latitude}, ${siteData.longitude}`);
-                }
-            }
-            catch (err) {
-                console.error('Geocoding failed:', err);
-            }
+        if (!siteData.latitude || !siteData.longitude) {
+            await this.geocodeAddress(siteData);
         }
         await this.siteRepo.update(id, siteData);
         return this.siteRepo.findOne({ where: { id } });
@@ -326,7 +402,7 @@ let AppService = class AppService {
         return this.alertRepo.find({
             where,
             order: { timestamp: 'DESC' },
-            relations: ['sensor', 'sensor.zone', 'sensor.zone.site'],
+            relations: ['sensor', 'sensor.zone', 'sensor.zone.site', 'sensor.zone.site.organization'],
         });
     }
     async getHvacPerformance(orgId, siteId) {
@@ -549,7 +625,12 @@ let AppService = class AppService {
         if (!isGlobalContext)
             gatewaysQuery = gatewaysQuery.where('site.organizationId = :orgId', { orgId });
         const totalGateways = await gatewaysQuery.getCount();
-        const offlineGateways = Math.floor(totalGateways * 0.05);
+        let offlineGatewaysQuery = this.gatewayRepo.createQueryBuilder('gateway')
+            .leftJoin('gateway.site', 'site')
+            .where('gateway.status = :status', { status: 'offline' });
+        if (!isGlobalContext)
+            offlineGatewaysQuery = offlineGatewaysQuery.andWhere('site.organizationId = :orgId', { orgId });
+        const offlineGateways = await offlineGatewaysQuery.getCount();
         const globalHealthScore = Math.max(0, 100 - activeIncidents * 2 - offlineGateways * 5);
         return {
             totalClients,

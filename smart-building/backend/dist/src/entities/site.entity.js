@@ -21,6 +21,7 @@ let Site = class Site {
     address;
     city;
     postalCode;
+    country;
     latitude;
     longitude;
     zones;
@@ -53,6 +54,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Site.prototype, "postalCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Site.prototype, "country", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'decimal', precision: 10, scale: 6, nullable: true }),
     __metadata("design:type", Number)

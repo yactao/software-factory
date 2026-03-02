@@ -71,6 +71,7 @@ export default function ClientsPage() {
                 setIsAddClientOpen(false);
                 setNewClient({ name: "", type: "Corporate", country: "France", contactFirstName: "", contactLastName: "", city: "", postalCode: "", address: "", phone: "", email: "", establishmentDate: "", legalForm: "SAS" });
                 await fetchOrganizations();
+                window.dispatchEvent(new Event("clients_updated"));
             }
         } catch (e) {
             console.error(e);
@@ -90,6 +91,7 @@ export default function ClientsPage() {
                 setIsEditClientOpen(false);
                 setEditClient(null);
                 await fetchOrganizations();
+                window.dispatchEvent(new Event("clients_updated"));
             }
         } catch (e) {
             console.error(e);
@@ -106,6 +108,7 @@ export default function ClientsPage() {
                 setIsDeleteClientOpen(false);
                 setClientToDelete(null);
                 await fetchOrganizations();
+                window.dispatchEvent(new Event("clients_updated"));
             }
         } catch (e) {
             console.error(e);

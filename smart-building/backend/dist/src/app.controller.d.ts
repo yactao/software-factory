@@ -5,16 +5,52 @@ export declare class AppController {
     private readonly rulesEngineService;
     constructor(appService: AppService, rulesEngineService: RulesEngineService);
     getHello(): string;
-    getSites(orgId: string, role?: string): Promise<import("./entities/site.entity").Site[]>;
+    getHealth(): Promise<{
+        status: string;
+        timestamp: string;
+        uptime: number;
+        memory: {
+            rss: string;
+            heapTotal: string;
+            heapUsed: string;
+        };
+        database: string;
+        error?: undefined;
+    } | {
+        status: string;
+        timestamp: string;
+        database: string;
+        error: string;
+        uptime?: undefined;
+        memory?: undefined;
+    }>;
+    getSites(orgId: string, role?: string): Promise<{
+        statusColor: string;
+        id: string;
+        name: string;
+        type: string;
+        address: string;
+        city: string;
+        postalCode: string;
+        country: string;
+        latitude: number;
+        longitude: number;
+        zones: import("./entities/zone.entity").Zone[];
+        organization: import("./entities/organization.entity").Organization;
+        organizationId: string;
+        gateways: import("./entities/gateway.entity").Gateway[];
+    }[]>;
     getOrganizations(): Promise<{
         sitesCount: number;
         usersCount: number;
+        gatewaysCount: number;
         devicesCount: number;
         id: string;
         name: string;
         type: string;
         country: string;
-        region: string;
+        contactFirstName: string;
+        contactLastName: string;
         city: string;
         address: string;
         postalCode: string;
@@ -37,8 +73,8 @@ export declare class AppController {
     updateSite(id: string, siteData: any): Promise<import("./entities/site.entity").Site | null>;
     deleteSite(id: string): Promise<import("typeorm").DeleteResult>;
     createZone(zoneData: any): Promise<import("./entities/zone.entity").Zone[]>;
-    getSensors(orgId: string): Promise<import("./entities/sensor.entity").Sensor[]>;
-    getGateways(orgId: string): Promise<import("./entities/gateway.entity").Gateway[]>;
+    getSensors(orgId: string, role?: string): Promise<import("./entities/sensor.entity").Sensor[]>;
+    getGateways(orgId: string, role?: string): Promise<import("./entities/gateway.entity").Gateway[]>;
     createGateway(gatewayData: any): Promise<import("./entities/gateway.entity").Gateway[]>;
     getReadings(limit?: string, orgId?: string): Promise<import("./entities/reading.entity").Reading[]>;
     getGlobalEnergy(orgId: string, siteId?: string): Promise<{
@@ -51,14 +87,14 @@ export declare class AppController {
         day: string;
         averageTemp: number;
     }[]>;
-    getAlerts(orgId: string, siteId?: string): Promise<import("./entities/alert.entity").Alert[]>;
+    getAlerts(orgId: string, role?: string, siteId?: string): Promise<import("./entities/alert.entity").Alert[]>;
     getHvacPerformance(orgId: string, siteId?: string): Promise<{
         day: string;
         runtime: number;
         setpoint: number;
         actual: number;
     }[]>;
-    getRules(orgId: string): Promise<import("./entities/rule.entity").Rule[]>;
+    getRules(orgId: string, role?: string): Promise<import("./entities/rule.entity").Rule[]>;
     createRule(orgId: string, ruleData: any): Promise<import("./entities/rule.entity").Rule[]>;
     processIotWebhook(webhookData: any): Promise<{
         success: boolean;

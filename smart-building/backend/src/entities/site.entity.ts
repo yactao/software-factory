@@ -23,6 +23,9 @@ export class Site {
     @Column({ nullable: true })
     postalCode: string;
 
+    @Column({ nullable: true })
+    country: string;
+
     @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
     latitude: number;
 

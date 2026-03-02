@@ -18,7 +18,8 @@ let Organization = class Organization {
     name;
     type;
     country;
-    region;
+    contactFirstName;
+    contactLastName;
     city;
     address;
     postalCode;
@@ -54,7 +55,11 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], Organization.prototype, "region", void 0);
+], Organization.prototype, "contactFirstName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Organization.prototype, "contactLastName", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
