@@ -44,7 +44,8 @@ const LocationSelector = ({
     organizations,
     selectedOrgId, setSelectedOrgId,
     sites, selectedSiteId, setSelectedSiteId,
-    zones, selectedZoneId, setSelectedZoneId
+    zones, selectedZoneId, setSelectedZoneId,
+    gateways, selectedGatewayId, setSelectedGatewayId
 }: any) => (
     <div className="bg-white dark:bg-black/20 p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
@@ -93,6 +94,20 @@ const LocationSelector = ({
                     ))}
                 </select>
             </div>
+            <div>
+                <label className="text-xs font-bold text-slate-500 mb-2 flex items-center uppercase tracking-wider"><Wifi className="w-3 h-3 mr-1" /> U-Bot / Passerelle</label>
+                <select
+                    value={selectedGatewayId}
+                    onChange={e => setSelectedGatewayId(e.target.value)}
+                    disabled={!selectedSiteId}
+                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-primary transition-colors cursor-pointer disabled:opacity-50"
+                >
+                    <option value="" className="text-slate-900 dark:text-white">Sélectionnez le U-Bot de rattachement...</option>
+                    {gateways?.map((gw: any) => (
+                        <option key={gw.id} value={gw.id} className="text-slate-900 dark:text-white">{gw.name} ({gw.serialNumber})</option>
+                    ))}
+                </select>
+            </div>
         </div>
     </div>
 );
@@ -108,6 +123,7 @@ export default function MappingPage() {
     const [selectedOrgId, setSelectedOrgId] = useState("");
     const [selectedSiteId, setSelectedSiteId] = useState("");
     const [selectedZoneId, setSelectedZoneId] = useState("");
+    const [selectedGatewayId, setSelectedGatewayId] = useState("");
 
     useEffect(() => {
         const fetchOrgs = async () => {
@@ -128,6 +144,7 @@ export default function MappingPage() {
     const sites = activeOrg?.sites || [];
     const activeSite = sites.find((s: any) => s.id === selectedSiteId);
     const zones = activeSite?.zones || [];
+    const gateways = activeSite?.gateways || [];
 
     // States Avancés
     const [templateName, setTemplateName] = useState("Sonde Multi-paramètres (Custom MQTT)");
@@ -286,6 +303,7 @@ export default function MappingPage() {
                         organizations={organizations} selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId}
                         sites={sites} selectedSiteId={selectedSiteId} setSelectedSiteId={setSelectedSiteId}
                         zones={zones} selectedZoneId={selectedZoneId} setSelectedZoneId={setSelectedZoneId}
+                        gateways={gateways} selectedGatewayId={selectedGatewayId} setSelectedGatewayId={setSelectedGatewayId}
                     />
                 </div>
             )}
@@ -297,6 +315,7 @@ export default function MappingPage() {
                         organizations={organizations} selectedOrgId={selectedOrgId} setSelectedOrgId={setSelectedOrgId}
                         sites={sites} selectedSiteId={selectedSiteId} setSelectedSiteId={setSelectedSiteId}
                         zones={zones} selectedZoneId={selectedZoneId} setSelectedZoneId={setSelectedZoneId}
+                        gateways={gateways} selectedGatewayId={selectedGatewayId} setSelectedGatewayId={setSelectedGatewayId}
                     />
 
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-indigo-50 dark:bg-indigo-950/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-500/20">

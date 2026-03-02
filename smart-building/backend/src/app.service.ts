@@ -189,7 +189,7 @@ export class AppService implements OnModuleInit {
     const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
     const where = orgId && !isGlobalContext ? { organizationId: orgId } : {};
 
-    const sites = await this.siteRepo.find({ where, relations: ['zones'] });
+    const sites = await this.siteRepo.find({ where, relations: ['zones', 'organization'] });
 
     let activeAlertsQuery = this.alertRepo.createQueryBuilder('alert')
       .leftJoinAndSelect('alert.sensor', 'sensor')
@@ -556,6 +556,7 @@ export class AppService implements OnModuleInit {
 
     // 1. Search Sites
     const sitesQuery = this.siteRepo.createQueryBuilder('site')
+      .leftJoinAndSelect('site.organization', 'organization')
       .where('(site.name LIKE :search OR site.city LIKE :search)', { search: searchStr });
     if (!isGlobalContext) sitesQuery.andWhere('site.organizationId = :orgId', { orgId });
     const sites = await sitesQuery.take(5).getMany();
@@ -564,7 +565,7 @@ export class AppService implements OnModuleInit {
       id: s.id,
       type: 'site',
       title: s.name,
-      subtitle: `Bâtiment • ${s.city}`,
+      subtitle: `Bâtiment • ${s.organization?.name || 'Inconnu'} • ${s.city}`,
       url: `/sites/${s.id}`
     }));
 

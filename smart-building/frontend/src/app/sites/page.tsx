@@ -17,6 +17,7 @@ interface Site {
     status: string;
     zonesCount?: number;
     statusColor?: "green" | "orange" | "red";
+    organization?: { name: string };
 }
 
 export default function SitesListPage() {
@@ -246,7 +247,7 @@ export default function SitesListPage() {
                                                 </div>
                                                 <div>
                                                     <p className="font-bold text-slate-900 dark:text-white text-sm">{site.name}</p>
-                                                    <p className="text-[10px] uppercase text-slate-500 dark:text-muted-foreground mt-0.5 tracking-widest">{site.id.split('-')[0]}</p>
+                                                    <p className="text-[10px] uppercase text-slate-500 dark:text-muted-foreground mt-0.5 tracking-widest">{site.organization?.name ? `Client : ${site.organization.name}` : site.id.split('-')[0]}</p>
                                                 </div>
                                             </div>
                                         </td>
