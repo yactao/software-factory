@@ -90,11 +90,11 @@ export default function LicensePage() {
                             <span className="flex items-center text-emerald-500 text-sm font-bold"><CheckCircle2 className="w-4 h-4 mr-1" /> Actif</span>
                         </div>
 
-                        <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2">{orgData.subscriptionPlan || "Enterprise"}</h2>
+                        <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2">{orgData.subscriptionPlan?.split("_")[0] || "Enterprise"}</h2>
                         <p className="text-slate-500 dark:text-muted-foreground text-sm mb-6">Idéal pour la gestion de parcs immobiliers distribués avec IA et Analytics avancés.</p>
 
                         <div className="text-3xl font-bold text-slate-900 dark:text-white mb-6">
-                            {orgData.subscriptionPlan === "Enterprise" ? "Sur mesure" : orgData.subscriptionPlan === "Pro" ? "499 CHF" : "99 CHF"} <span className="text-sm text-slate-500 dark:text-muted-foreground font-normal">{orgData.subscriptionPlan !== "Enterprise" && "/ mois"}</span>
+                            {orgData.subscriptionPlan === "Enterprise" ? "Sur mesure" : orgData.subscriptionPlan?.startsWith("Pro") ? `499 ${orgData.subscriptionPlan.includes("EUR") ? "€" : "CHF"}` : `99 ${orgData.subscriptionPlan?.includes("EUR") ? "€" : "CHF"}`} <span className="text-sm text-slate-500 dark:text-muted-foreground font-normal">{orgData.subscriptionPlan !== "Enterprise" && "/ mois"}</span>
                         </div>
 
                         {isAdmin && (
@@ -229,8 +229,10 @@ export default function LicensePage() {
                                         onChange={e => setEditData({ ...editData, subscriptionPlan: e.target.value })}
                                         className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
                                     >
-                                        <option value="Starter">Starter - 99 CHF/mo</option>
-                                        <option value="Pro">Pro - 499 CHF/mo</option>
+                                        <option value="Starter_CHF">Starter - 99 CHF/mo</option>
+                                        <option value="Starter_EUR">Starter - 99 €/mo</option>
+                                        <option value="Pro_CHF">Pro - 499 CHF/mo</option>
+                                        <option value="Pro_EUR">Pro - 499 €/mo</option>
                                         <option value="Enterprise">Enterprise - Sur mesure</option>
                                     </select>
                                 </div>

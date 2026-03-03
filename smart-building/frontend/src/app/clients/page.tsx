@@ -271,16 +271,16 @@ export default function ClientsPage() {
                                             {org.name === "UBBEE" ? (
                                                 <span className="text-[11px] font-bold text-primary flex justify-center items-center">SUPER_ADMIN</span>
                                             ) : (
-                                                <span className={`inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg ${org.subscriptionPlan === "Starter" ? "bg-blue-500/10 text-blue-500" :
-                                                    org.subscriptionPlan === "Pro" ? "bg-purple-500/10 text-purple-500" :
-                                                        "bg-emerald-500/10 text-emerald-500"
+                                                <span className={`inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg ${org.subscriptionPlan?.startsWith("Starter") ? "bg-blue-500/10 text-blue-500" :
+                                                        org.subscriptionPlan?.startsWith("Pro") ? "bg-purple-500/10 text-purple-500" :
+                                                            "bg-emerald-500/10 text-emerald-500"
                                                     }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${org.subscriptionPlan === "Starter" ? "bg-blue-500" :
-                                                        org.subscriptionPlan === "Pro" ? "bg-purple-500" :
-                                                            "bg-emerald-500"
+                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${org.subscriptionPlan?.startsWith("Starter") ? "bg-blue-500" :
+                                                            org.subscriptionPlan?.startsWith("Pro") ? "bg-purple-500" :
+                                                                "bg-emerald-500"
                                                         }`}></span>
-                                                    {org.subscriptionPlan === "Starter" ? "STARTER - 99 CHF/MO" :
-                                                        org.subscriptionPlan === "Pro" ? "PRO - 499 CHF/MO" :
+                                                    {org.subscriptionPlan?.startsWith("Starter") ? `STARTER - 99 ${org.subscriptionPlan.includes("EUR") ? "€" : "CHF"}/MO` :
+                                                        org.subscriptionPlan?.startsWith("Pro") ? `PRO - 499 ${org.subscriptionPlan.includes("EUR") ? "€" : "CHF"}/MO` :
                                                             "ENTERPRISE - SUR MESURE"}
                                                 </span>
                                             )}
@@ -390,8 +390,10 @@ export default function ClientsPage() {
                                             onChange={e => setNewClient({ ...newClient, subscriptionPlan: e.target.value })}
                                             className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
                                         >
-                                            <option value="Starter">Starter - 99 CHF/mo</option>
-                                            <option value="Pro">Pro - 499 CHF/mo</option>
+                                            <option value="Starter_CHF">Starter - 99 CHF/mo</option>
+                                            <option value="Starter_EUR">Starter - 99 €/mo</option>
+                                            <option value="Pro_CHF">Pro - 499 CHF/mo</option>
+                                            <option value="Pro_EUR">Pro - 499 €/mo</option>
                                             <option value="Enterprise">Enterprise - Sur mesure</option>
                                         </select>
                                     </div>
@@ -578,8 +580,10 @@ export default function ClientsPage() {
                                             onChange={e => setEditClient({ ...editClient, subscriptionPlan: e.target.value })}
                                             className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
                                         >
-                                            <option value="Starter">Starter - 99 CHF/mo</option>
-                                            <option value="Pro">Pro - 499 CHF/mo</option>
+                                            <option value="Starter_CHF">Starter - 99 CHF/mo</option>
+                                            <option value="Starter_EUR">Starter - 99 €/mo</option>
+                                            <option value="Pro_CHF">Pro - 499 CHF/mo</option>
+                                            <option value="Pro_EUR">Pro - 499 €/mo</option>
                                             <option value="Enterprise">Enterprise - Sur mesure</option>
                                         </select>
                                     </div>
