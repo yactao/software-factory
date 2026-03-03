@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
-import { Building2, Layers, ThermometerSun, Wind, Users, Activity, ChevronsUpDown, Cpu, Search, CheckCircle2, ChevronDown, ChevronRight, Building, MapPin, LayoutGrid, Thermometer, Plus, X, Zap, ArrowLeft, Sun, CloudRain, AlertTriangle, ShieldCheck, Filter, RefreshCw, Power, Lightbulb, Video, Router, Server } from "lucide-react";
+import { Building2, Layers, ThermometerSun, Wind, Users, Activity, ChevronsUpDown, Cpu, Search, CheckCircle2, ChevronDown, ChevronRight, Building, MapPin, LayoutGrid, Thermometer, Plus, X, Zap, ArrowLeft, Sun, CloudRain, AlertTriangle, ShieldCheck, Filter, RefreshCw, Power, Lightbulb, Video, Router, Server, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTenant } from "@/lib/TenantContext";
 import { EnergyChart } from "@/components/dashboard/EnergyChart";
@@ -161,6 +161,21 @@ export default function SiteDashboardPage() {
             }
         } catch (e) {
             console.error(e);
+        }
+    };
+
+    const handleDeleteZone = async (zoneId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette zone ?")) return;
+        try {
+            const res = await authFetch(`http://localhost:3001/api/zones/${zoneId}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                await fetchSiteDetails();
+            }
+        } catch (error) {
+            console.error("Failed to delete zone", error);
         }
     };
 
@@ -357,8 +372,15 @@ export default function SiteDashboardPage() {
                                                 {zones.map(zone => (
                                                     <div key={zone.id} className="p-4 bg-slate-50 dark:bg-[#0B1120] rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary/40 transition-all group">
                                                         <div className="flex justify-between items-start mb-4">
-                                                            <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors">{zone.name}</h4>
-                                                            <span className="text-[10px] text-slate-500 uppercase tracking-widest">{zone.type}</span>
+                                                            <div className="flex flex-col">
+                                                                <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors">{zone.name}</h4>
+                                                                <span className="text-[10px] text-slate-500 uppercase tracking-widest">{zone.type}</span>
+                                                            </div>
+                                                            {isAdmin && (
+                                                                <button onClick={(e) => handleDeleteZone(zone.id, e)} className="p-1 hover:bg-rose-500/10 hover:text-rose-500 text-slate-400 rounded transition-colors opacity-0 group-hover:opacity-100" title="Supprimer la zone">
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </button>
+                                                            )}
                                                         </div>
 
                                                         <div className="grid grid-cols-2 gap-2 mb-4">

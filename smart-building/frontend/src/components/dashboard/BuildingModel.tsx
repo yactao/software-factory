@@ -15,20 +15,22 @@ interface BuildingModelProps {
 function Room({ position, size, zone, activeLayer }: any) {
     const [hovered, setHovered] = useState(false);
 
-    // Simulation de données temps réel par défaut pour le rendu visuel
-    const temperature = zone.temperature ?? (20 + Math.random() * 5); // 20 à 25°C
-    const co2 = zone.co2 ?? (400 + Math.random() * 600); // 400 à 1000 ppm
-    const isOccupied = zone.isOccupied ?? (Math.random() > 0.5);
+    const hasSensors = zone.sensors && zone.sensors.length > 0;
+
+    // Simulation de données temps réel par défaut pour le rendu visuel SEULEMENT si des capteurs existent
+    const temperature = hasSensors ? (zone.temperature ?? (20 + Math.random() * 5)) : null; // 20 à 25°C
+    const co2 = hasSensors ? (zone.co2 ?? (400 + Math.random() * 600)) : null; // 400 à 1000 ppm
+    const isOccupied = hasSensors ? (zone.isOccupied ?? (Math.random() > 0.5)) : null;
 
     // Logique de coloration par couche (Layer)
     let baseColor = "#1e293b"; // Par défaut (Gris foncé)
     let emissionColor = "#000000";
 
-    if (activeLayer === "temperature") {
+    if (activeLayer === "temperature" && temperature !== null) {
         baseColor = temperature > 24 ? "#ef4444" : temperature < 21 ? "#3b82f6" : "#10b981";
-    } else if (activeLayer === "co2") {
+    } else if (activeLayer === "co2" && co2 !== null) {
         baseColor = co2 > 800 ? "#f59e0b" : "#10b981"; // Orange si > 800ppm, vert sinon
-    } else if (activeLayer === "occupancy") {
+    } else if (activeLayer === "occupancy" && isOccupied !== null) {
         baseColor = isOccupied ? "#8b5cf6" : "#334155"; // Violet si occupé, gris si vide
     }
 
@@ -76,24 +78,24 @@ function Room({ position, size, zone, activeLayer }: any) {
                             {(activeLayer === "temperature" || activeLayer === "all") && (
                                 <div className="flex items-center justify-between text-[11px]">
                                     <span className="flex items-center text-slate-500 dark:text-muted-foreground"><Thermometer className="w-3 h-3 mr-1" /> Temp</span>
-                                    <span className={`font-mono font-bold ${temperature > 24 ? 'text-red-400' : temperature < 21 ? 'text-blue-400' : 'text-emerald-400'}`}>
-                                        {temperature.toFixed(1)}°C
+                                    <span className={`font-mono font-bold ${temperature === null ? 'text-slate-500' : temperature > 24 ? 'text-red-400' : temperature < 21 ? 'text-blue-400' : 'text-emerald-400'}`}>
+                                        {temperature !== null ? `${temperature.toFixed(1)}°C` : 'N/A'}
                                     </span>
                                 </div>
                             )}
                             {(activeLayer === "co2" || activeLayer === "all") && (
                                 <div className="flex items-center justify-between text-[11px]">
                                     <span className="flex items-center text-slate-500 dark:text-muted-foreground"><Wind className="w-3 h-3 mr-1" /> CO2</span>
-                                    <span className={`font-mono font-bold ${co2 > 800 ? 'text-orange-400' : 'text-emerald-400'}`}>
-                                        {co2.toFixed(0)} ppm
+                                    <span className={`font-mono font-bold ${co2 === null ? 'text-slate-500' : co2 > 800 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                                        {co2 !== null ? `${co2.toFixed(0)} ppm` : 'N/A'}
                                     </span>
                                 </div>
                             )}
                             {(activeLayer === "occupancy" || activeLayer === "all") && (
                                 <div className="flex items-center justify-between text-[11px]">
                                     <span className="flex items-center text-slate-500 dark:text-muted-foreground"><Users className="w-3 h-3 mr-1" /> Bureau</span>
-                                    <span className={`font-mono font-bold ${isOccupied ? 'text-purple-400' : 'text-slate-400'}`}>
-                                        {isOccupied ? 'Occupé' : 'Vide'}
+                                    <span className={`font-mono font-bold ${isOccupied === null ? 'text-slate-500' : isOccupied ? 'text-purple-400' : 'text-slate-400'}`}>
+                                        {isOccupied !== null ? (isOccupied ? 'Occupé' : 'Vide') : 'N/A'}
                                     </span>
                                 </div>
                             )}
