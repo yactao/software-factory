@@ -673,80 +673,88 @@ export default function SiteDashboardPage() {
                                     </h3>
                                 </div>
                                 <div className="p-4 space-y-4">
-                                    <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center">
-                                                <Router className="w-4 h-4 mr-2 text-slate-400" />
-                                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Passerelle Ubot</h4>
+                                    {(selectedZone.sensors && selectedZone.sensors.length > 0) ? (
+                                        <>
+                                            <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center">
+                                                        <Router className="w-4 h-4 mr-2 text-slate-400" />
+                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Passerelle Ubot</h4>
+                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20">Online</span>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <p className="text-xs text-slate-500 font-mono tracking-wider">ID: GTW-8829-AB</p>
+                                                </div>
                                             </div>
-                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20">Online</span>
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <p className="text-xs text-slate-500 font-mono tracking-wider">ID: GTW-8829-AB</p>
-                                        </div>
-                                    </div>
 
-                                    <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center">
-                                                <ThermometerSun className="w-4 h-4 mr-2 text-slate-400" />
-                                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Contrôleur CVC</h4>
+                                            <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center">
+                                                        <ThermometerSun className="w-4 h-4 mr-2 text-slate-400" />
+                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Contrôleur CVC</h4>
+                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20">Online</span>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <p className="text-xs text-slate-500 font-mono tracking-wider">ID: THM-2241-CD</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            const newState = !hvacState;
+                                                            setHvacState(newState);
+                                                            handleEquipmentAction("cvc-local", "toggle_hvac", newState);
+                                                        }}
+                                                        className={`px-3 py-1 rounded text-xs font-bold transition-all ${hvacState ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                                                    >
+                                                        {hvacState ? 'Allumé' : 'Éteint'}
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20">Online</span>
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <p className="text-xs text-slate-500 font-mono tracking-wider">ID: THM-2241-CD</p>
-                                            <button
-                                                onClick={() => {
-                                                    const newState = !hvacState;
-                                                    setHvacState(newState);
-                                                    handleEquipmentAction("cvc-local", "toggle_hvac", newState);
-                                                }}
-                                                className={`px-3 py-1 rounded text-xs font-bold transition-all ${hvacState ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
-                                            >
-                                                {hvacState ? 'Allumé' : 'Éteint'}
-                                            </button>
-                                        </div>
-                                    </div>
 
-                                    <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center">
-                                                <Lightbulb className="w-4 h-4 mr-2 text-slate-400" />
-                                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Éclairage DALI</h4>
+                                            <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center">
+                                                        <Lightbulb className="w-4 h-4 mr-2 text-slate-400" />
+                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Éclairage DALI</h4>
+                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20">Online</span>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <p className="text-xs text-slate-500 font-mono tracking-wider">ID: LGT-1049-EF</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            const newState = !lightsState;
+                                                            setLightsState(newState);
+                                                            handleEquipmentAction("lights-local", "toggle_lights", newState);
+                                                        }}
+                                                        className={`px-3 py-1 rounded text-xs font-bold transition-all ${lightsState ? 'bg-yellow-400 hover:bg-yellow-500 text-slate-900 shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                                                    >
+                                                        {lightsState ? 'Allumé' : 'Éteint'}
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-500 rounded border border-emerald-500/20">Online</span>
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <p className="text-xs text-slate-500 font-mono tracking-wider">ID: LGT-1049-EF</p>
-                                            <button
-                                                onClick={() => {
-                                                    const newState = !lightsState;
-                                                    setLightsState(newState);
-                                                    handleEquipmentAction("lights-local", "toggle_lights", newState);
-                                                }}
-                                                className={`px-3 py-1 rounded text-xs font-bold transition-all ${lightsState ? 'bg-yellow-400 hover:bg-yellow-500 text-slate-900 shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
-                                            >
-                                                {lightsState ? 'Allumé' : 'Éteint'}
-                                            </button>
-                                        </div>
-                                    </div>
 
-                                    <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="flex items-center">
-                                                <Video className="w-4 h-4 mr-2 text-slate-400" />
-                                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Caméra Thermique</h4>
+                                            <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center">
+                                                        <Video className="w-4 h-4 mr-2 text-slate-400" />
+                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Caméra Thermique</h4>
+                                                    </div>
+                                                    <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-500 rounded border border-amber-500/20">Standby</span>
+                                                </div>
+                                                <div className="flex justify-between items-end mt-1">
+                                                    <p className="text-xs text-slate-500 font-mono tracking-wider">ID: CAM-TH-01</p>
+                                                    <span className="px-3 py-1 text-[10px] font-bold text-red-500 bg-red-500/10 rounded flex items-center">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1 animate-pulse" /> Live Feed
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-500 rounded border border-amber-500/20">Standby</span>
+                                        </>
+                                    ) : (
+                                        <div className="p-8 text-center text-slate-500 italic bg-slate-50/20 dark:bg-black/10 rounded-xl border border-dashed border-slate-200 dark:border-white/5">
+                                            Aucun équipement connectable dans cette zone.
                                         </div>
-                                        <div className="flex justify-between items-end mt-1">
-                                            <p className="text-xs text-slate-500 font-mono tracking-wider">ID: CAM-TH-01</p>
-                                            <span className="px-3 py-1 text-[10px] font-bold text-red-500 bg-red-500/10 rounded flex items-center">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1 animate-pulse" /> Live Feed
-                                            </span>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
