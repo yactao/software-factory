@@ -23,15 +23,18 @@ function Room({ position, size, zone, activeLayer }: any) {
     const isOccupied = hasSensors ? (zone.isOccupied ?? (Math.random() > 0.5)) : null;
 
     // Logique de coloration par couche (Layer)
-    let baseColor = "#1e293b"; // Par défaut (Gris foncé)
+    let baseColor = hasSensors ? "#334155" : "#cbd5e1"; // Ardoise si capteur, Gris clair si vide
+    let opacity = hasSensors ? 0.6 : 0.2; // Plus transparent si vide
     let emissionColor = "#000000";
 
-    if (activeLayer === "temperature" && temperature !== null) {
-        baseColor = temperature > 24 ? "#ef4444" : temperature < 21 ? "#3b82f6" : "#10b981";
-    } else if (activeLayer === "co2" && co2 !== null) {
-        baseColor = co2 > 800 ? "#f59e0b" : "#10b981"; // Orange si > 800ppm, vert sinon
-    } else if (activeLayer === "occupancy" && isOccupied !== null) {
-        baseColor = isOccupied ? "#8b5cf6" : "#334155"; // Violet si occupé, gris si vide
+    if (hasSensors) {
+        if (activeLayer === "temperature" && temperature !== null) {
+            baseColor = temperature > 24 ? "#ef4444" : temperature < 21 ? "#3b82f6" : "#10b981";
+        } else if (activeLayer === "co2" && co2 !== null) {
+            baseColor = co2 > 800 ? "#f59e0b" : "#10b981"; // Orange si > 800ppm, vert sinon
+        } else if (activeLayer === "occupancy" && isOccupied !== null) {
+            baseColor = isOccupied ? "#8b5cf6" : "#475569"; // Violet si occupé, gris si vide
+        }
     }
 
     if (hovered) {
@@ -42,7 +45,7 @@ function Room({ position, size, zone, activeLayer }: any) {
         <group position={position}>
             {/* Sol de la pièce */}
             <Box args={[size[0] - 0.2, 0.1, size[2] - 0.2]} position={[0, -0.05, 0]}>
-                <meshStandardMaterial color={baseColor} opacity={0.6} transparent />
+                <meshStandardMaterial color={baseColor} opacity={opacity} transparent />
             </Box>
 
             {/* Murs en verre (Glassmorphism 3D) */}
@@ -58,7 +61,7 @@ function Room({ position, size, zone, activeLayer }: any) {
                     emissive={emissionColor}
                     emissiveIntensity={hovered ? 0.5 : 0}
                     transmission={0.9}
-                    opacity={1}
+                    opacity={opacity}
                     roughness={0.1}
                     metalness={0.1}
                     transparent
