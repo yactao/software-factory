@@ -196,6 +196,13 @@ export default function SiteDashboardPage() {
 
     const hasEquipments = (site?.gateways?.length ?? 0) > 0 || site?.zones?.some((z: any) => (z.sensors?.length ?? 0) > 0) || false;
 
+    const isProjetY = site?.name?.toLowerCase().includes("projet y") || site?.organization?.name?.toLowerCase().includes("projet y");
+    const displaySensors = (selectedZone?.sensors && selectedZone.sensors.length > 0) ? selectedZone.sensors : (!isProjetY && selectedZone ? [
+        { id: `mock-${selectedZone.id}-1`, name: "Multi-Senseur Ambiance", type: "ambiance, temp, rh, lx" },
+        { id: `mock-${selectedZone.id}-2`, name: "Détecteur Présence (PIR)", type: "motion, présence" },
+        { id: `mock-${selectedZone.id}-3`, name: "Sonde Qualité Air", type: "co2, voc" }
+    ] : []);
+
     return (
         <div className="space-y-6 max-w-[1400px] mx-auto pb-12 pt-4">
             {/* Header & Breadcrumb */}
@@ -596,7 +603,7 @@ export default function SiteDashboardPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="text-sm">
-                                            {selectedZone.sensors && selectedZone.sensors.length > 0 && (
+                                            {displaySensors.length > 0 && (
                                                 <tr
                                                     onClick={() => setExpandedRows(prev => ({ ...prev, [selectedZone.id]: !prev[selectedZone.id] }))}
                                                     className="border-b border-slate-100 dark:border-white/5 bg-slate-100/50 dark:bg-white/[0.04] cursor-pointer group"
@@ -613,7 +620,7 @@ export default function SiteDashboardPage() {
                                                 </tr>
                                             )}
                                             {/* Sensors */}
-                                            {expandedRows[selectedZone.id] && selectedZone.sensors?.map((sensor: { id: string; name: string; type: string }) => {
+                                            {expandedRows[selectedZone.id] && displaySensors.map((sensor: { id: string; name: string; type: string }) => {
                                                 const type = sensor.type.toLowerCase();
                                                 let Pills = <span className="px-2.5 py-1 text-xs font-bold bg-slate-100 dark:bg-white/10 text-slate-400 rounded-md">-</span>;
 
@@ -653,7 +660,7 @@ export default function SiteDashboardPage() {
                                                 );
                                             })}
 
-                                            {(!selectedZone.sensors || selectedZone.sensors.length === 0) && (
+                                            {displaySensors.length === 0 && (
                                                 <tr>
                                                     <td colSpan={3} className="p-8 text-center text-slate-500 italic bg-slate-50/20 dark:bg-black/10">
                                                         Aucun capteur rattaché dans cette zone.
@@ -673,7 +680,7 @@ export default function SiteDashboardPage() {
                                     </h3>
                                 </div>
                                 <div className="p-4 space-y-4">
-                                    {(selectedZone.sensors && selectedZone.sensors.length > 0) ? (
+                                    {displaySensors.length > 0 ? (
                                         <>
                                             <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
                                                 <div className="flex justify-between items-start mb-2">

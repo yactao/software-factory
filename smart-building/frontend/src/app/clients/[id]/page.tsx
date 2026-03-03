@@ -323,8 +323,9 @@ export default function ClientDetailsPage() {
                                     {client.sites && client.sites.length > 0 ? (
                                         (() => {
                                             const activeTwinSite = client.sites.find((s: any) => s.id === selectedTwinSiteId) || client.sites[0];
-                                            const hasEquipments = client.gatewaysCount > 0 || (activeTwinSite?.gateways?.length ?? 0) > 0 || activeTwinSite?.zones?.some((z: any) => (z.sensors?.length ?? 0) > 0) || false;
-                                            return <BuildingModel siteName={activeTwinSite.name} zones={activeTwinSite.zones || []} forceMockData={hasEquipments} />;
+                                            const isProjetY = client.name.toLowerCase().includes("projet y") || activeTwinSite?.name?.toLowerCase().includes("projet y");
+                                            const forceMockData = !isProjetY || client.gatewaysCount > 0 || (activeTwinSite?.gateways?.length ?? 0) > 0 || activeTwinSite?.zones?.some((z: any) => (z.sensors?.length ?? 0) > 0) || false;
+                                            return <BuildingModel siteName={activeTwinSite?.name || "Bâtiment"} zones={activeTwinSite?.zones || []} forceMockData={forceMockData} />;
                                         })()
                                     ) : (
                                         <div className="flex items-center justify-center h-full w-full bg-slate-50 dark:bg-black/20 rounded-xl border border-dashed border-slate-200 dark:border-white/10 mt-6">
