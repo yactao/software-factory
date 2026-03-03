@@ -26,7 +26,8 @@ export default function ClientsPage() {
         phone: "",
         email: "",
         establishmentDate: "",
-        legalForm: "SAS"
+        legalForm: "SAS",
+        subscriptionPlan: "Enterprise"
     });
 
     // Edit Client Modal
@@ -69,7 +70,7 @@ export default function ClientsPage() {
             });
             if (res.ok) {
                 setIsAddClientOpen(false);
-                setNewClient({ name: "", type: "Corporate", country: "France", contactFirstName: "", contactLastName: "", city: "", postalCode: "", address: "", phone: "", email: "", establishmentDate: "", legalForm: "SAS" });
+                setNewClient({ name: "", type: "Corporate", country: "France", contactFirstName: "", contactLastName: "", city: "", postalCode: "", address: "", phone: "", email: "", establishmentDate: "", legalForm: "SAS", subscriptionPlan: "Enterprise" });
                 await fetchOrganizations();
                 window.dispatchEvent(new Event("clients_updated"));
             }
@@ -82,10 +83,10 @@ export default function ClientsPage() {
         e.preventDefault();
         if (!editClient) return;
         try {
-            const { name, type, country, contactFirstName, contactLastName, city, address, postalCode, phone, email, establishmentDate, legalForm } = editClient;
+            const { name, type, country, contactFirstName, contactLastName, city, address, postalCode, phone, email, establishmentDate, legalForm, subscriptionPlan } = editClient;
             const res = await authFetch(`http://localhost:3001/api/organizations/${editClient.id}`, {
                 method: "PUT",
-                body: JSON.stringify({ name, type, country, contactFirstName, contactLastName, city, address, postalCode, phone, email, establishmentDate, legalForm })
+                body: JSON.stringify({ name, type, country, contactFirstName, contactLastName, city, address, postalCode, phone, email, establishmentDate, legalForm, subscriptionPlan })
             });
             if (res.ok) {
                 setIsEditClientOpen(false);
@@ -270,9 +271,17 @@ export default function ClientsPage() {
                                             {org.name === "UBBEE" ? (
                                                 <span className="text-[11px] font-bold text-primary flex justify-center items-center">SUPER_ADMIN</span>
                                             ) : (
-                                                <span className="inline-flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-                                                    Actif
+                                                <span className={`inline-flex items-center justify-center px-2 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg ${org.subscriptionPlan === "Starter" ? "bg-blue-500/10 text-blue-500" :
+                                                    org.subscriptionPlan === "Pro" ? "bg-purple-500/10 text-purple-500" :
+                                                        "bg-emerald-500/10 text-emerald-500"
+                                                    }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse ${org.subscriptionPlan === "Starter" ? "bg-blue-500" :
+                                                        org.subscriptionPlan === "Pro" ? "bg-purple-500" :
+                                                            "bg-emerald-500"
+                                                        }`}></span>
+                                                    {org.subscriptionPlan === "Starter" ? "STARTER - 99 CHF/MO" :
+                                                        org.subscriptionPlan === "Pro" ? "PRO - 499 CHF/MO" :
+                                                            "ENTERPRISE - SUR MESURE"}
                                                 </span>
                                             )}
                                         </td>
@@ -358,19 +367,34 @@ export default function ClientsPage() {
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Secteur d'Activité / Type *</label>
-                                    <select
-                                        required
-                                        value={newClient.type}
-                                        onChange={e => setNewClient({ ...newClient, type: e.target.value })}
-                                        className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
-                                    >
-                                        <option value="Retail">Retail & Distribution</option>
-                                        <option value="Corporate">Bureaux (Corporate)</option>
-                                        <option value="Industrial">Usine / Logistique</option>
-                                        <option value="Hospitality">Hôtellerie / Santé</option>
-                                    </select>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Secteur d'Activité / Type *</label>
+                                        <select
+                                            required
+                                            value={newClient.type}
+                                            onChange={e => setNewClient({ ...newClient, type: e.target.value })}
+                                            className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
+                                        >
+                                            <option value="Retail">Retail & Distribution</option>
+                                            <option value="Corporate">Bureaux (Corporate)</option>
+                                            <option value="Industrial">Usine / Logistique</option>
+                                            <option value="Hospitality">Hôtellerie / Santé</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Formule / Licence *</label>
+                                        <select
+                                            required
+                                            value={newClient.subscriptionPlan}
+                                            onChange={e => setNewClient({ ...newClient, subscriptionPlan: e.target.value })}
+                                            className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
+                                        >
+                                            <option value="Starter">Starter - 99 CHF/mo</option>
+                                            <option value="Pro">Pro - 499 CHF/mo</option>
+                                            <option value="Enterprise">Enterprise - Sur mesure</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
@@ -533,18 +557,32 @@ export default function ClientsPage() {
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Secteur d'Activité / Type</label>
-                                    <select
-                                        value={editClient.type || "Corporate"}
-                                        onChange={e => setEditClient({ ...editClient, type: e.target.value })}
-                                        className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
-                                    >
-                                        <option value="Retail">Retail & Distribution</option>
-                                        <option value="Corporate">Bureaux (Corporate)</option>
-                                        <option value="Industrial">Usine / Logistique</option>
-                                        <option value="Hospitality">Hôtellerie / Santé</option>
-                                    </select>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Secteur d'Activité / Type</label>
+                                        <select
+                                            value={editClient.type || "Corporate"}
+                                            onChange={e => setEditClient({ ...editClient, type: e.target.value })}
+                                            className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
+                                        >
+                                            <option value="Retail">Retail & Distribution</option>
+                                            <option value="Corporate">Bureaux (Corporate)</option>
+                                            <option value="Industrial">Usine / Logistique</option>
+                                            <option value="Hospitality">Hôtellerie / Santé</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-500 dark:text-slate-400">Formule / Licence</label>
+                                        <select
+                                            value={editClient.subscriptionPlan || "Enterprise"}
+                                            onChange={e => setEditClient({ ...editClient, subscriptionPlan: e.target.value })}
+                                            className="w-full p-2.5 mt-1 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white font-medium focus:ring-1 focus:ring-primary outline-none transition-all"
+                                        >
+                                            <option value="Starter">Starter - 99 CHF/mo</option>
+                                            <option value="Pro">Pro - 499 CHF/mo</option>
+                                            <option value="Enterprise">Enterprise - Sur mesure</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 

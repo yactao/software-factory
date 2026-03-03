@@ -115,7 +115,17 @@ export function BuildingModel({ siteName = "Bâtiment Principal", zones = [], fo
     const [selectedFloor, setSelectedFloor] = useState("RDC");
     const [activeLayer, setActiveLayer] = useState("temperature"); // temperature, co2, occupancy, all
 
-    const displayZones = zones;
+    let displayZones = zones;
+
+    // Fix for Demo: If we force mock data (because site has a gateway) but the site has NO zones configured yet,
+    // we inject default mock zones so the 3D twin isn't completely empty!
+    if (forceMockData && (!zones || zones.length === 0)) {
+        displayZones = [
+            { id: 'mock-1', name: 'Zone Principale', floor: 'RDC', position: [-2, 0, 0], size: [3, 1.5, 3] },
+            { id: 'mock-2', name: 'Zone Secondaire', floor: 'RDC', position: [2, 0, 0], size: [2.5, 1.5, 2.5] }
+        ];
+    }
+
     const availableFloors = displayZones.length > 0 ? Array.from(new Set(displayZones.map(z => z.floor || "RDC"))) : ["RDC"];
 
     const currentFloorZones = displayZones.filter(z => (z.floor || "RDC") === selectedFloor);
@@ -129,7 +139,7 @@ export function BuildingModel({ siteName = "Bâtiment Principal", zones = [], fo
 
             {/* UI Overlay: Filters & Controls */}
 
-            {zones.length === 0 && (
+            {displayZones.length === 0 && (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-50/80 dark:bg-black/80 backdrop-blur-sm rounded-xl">
                     <div className="glass px-6 py-8 rounded-2xl flex flex-col items-center text-center max-w-sm border border-slate-200 dark:border-white/10 shadow-xl">
                         <Layers className="w-12 h-12 text-slate-400 mb-4" />
@@ -139,7 +149,7 @@ export function BuildingModel({ siteName = "Bâtiment Principal", zones = [], fo
                 </div>
             )}
 
-            <div className={`absolute top-4 left-4 right-4 z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pointer-events-none ${zones.length === 0 ? 'opacity-30' : ''}`}>
+            <div className={`absolute top-4 left-4 right-4 z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pointer-events-none ${displayZones.length === 0 ? 'opacity-30' : ''}`}>
 
                 {/* Visual Layers / Filtres Métiers */}
                 <div className="flex gap-2 pointer-events-auto bg-white/80 dark:bg-black/60 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg">

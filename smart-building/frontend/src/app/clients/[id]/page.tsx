@@ -323,7 +323,7 @@ export default function ClientDetailsPage() {
                                     {client.sites && client.sites.length > 0 ? (
                                         (() => {
                                             const activeTwinSite = client.sites.find((s: any) => s.id === selectedTwinSiteId) || client.sites[0];
-                                            const hasEquipments = (activeTwinSite?.gateways?.length ?? 0) > 0 || activeTwinSite?.zones?.some((z: any) => (z.sensors?.length ?? 0) > 0) || false;
+                                            const hasEquipments = client.gatewaysCount > 0 || (activeTwinSite?.gateways?.length ?? 0) > 0 || activeTwinSite?.zones?.some((z: any) => (z.sensors?.length ?? 0) > 0) || false;
                                             return <BuildingModel siteName={activeTwinSite.name} zones={activeTwinSite.zones || []} forceMockData={hasEquipments} />;
                                         })()
                                     ) : (
