@@ -19,6 +19,7 @@ const alert_entity_1 = require("./entities/alert.entity");
 const rule_entity_1 = require("./entities/rule.entity");
 const organization_entity_1 = require("./entities/organization.entity");
 const user_entity_1 = require("./entities/user.entity");
+const custom_role_entity_1 = require("./entities/custom-role.entity");
 const gateway_entity_1 = require("./entities/gateway.entity");
 const device_template_entity_1 = require("./entities/device-template.entity");
 const payload_mapping_entity_1 = require("./entities/payload-mapping.entity");
@@ -42,11 +43,11 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'better-sqlite3',
                 database: 'smartbuild_v3.sqlite',
-                entities: [site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping],
+                entities: [site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, custom_role_entity_1.CustomRole, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping],
                 synchronize: true,
                 logging: false,
             }),
-            typeorm_1.TypeOrmModule.forFeature([site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping]),
+            typeorm_1.TypeOrmModule.forFeature([site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, custom_role_entity_1.CustomRole, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping]),
             notifications_module_1.NotificationsModule,
             ai_module_1.AiModule,
             auth_module_1.AuthModule,

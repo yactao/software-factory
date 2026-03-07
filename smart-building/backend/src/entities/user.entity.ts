@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Organization } from './organization.entity';
+import { CustomRole } from './custom-role.entity';
 
 export enum UserRole {
     SUPER_ADMIN = 'SUPER_ADMIN',
@@ -32,9 +33,9 @@ export class User {
     organization: Organization;
 
     // Added to fix CustomRole relationship
-    @ManyToOne('CustomRole', 'users', { nullable: true, onDelete: 'SET NULL' })
+    @ManyToOne(() => CustomRole, customRole => customRole.users, { nullable: true, onDelete: 'SET NULL' })
     @JoinColumn({ name: 'customRoleId' })
-    customRole: any; // Using any to avoid circular import if needed, or proper type
+    customRole: CustomRole;
 
     @CreateDateColumn()
     createdAt: Date;

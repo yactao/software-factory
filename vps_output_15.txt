@@ -23,24 +23,6 @@ Require stack:
 Node.js v20.20.0
 ==== REQUETE HTTP CURL SUR LE SERVEUR ====
 *   Trying 127.0.0.1:3001...
-* Connected to 127.0.0.1 (127.0.0.1) port 3001
-> POST /api/auth/login HTTP/1.1
-> Host: 127.0.0.1:3001
-> User-Agent: curl/8.5.0
-> Accept: */*
-> Content-Type: application/json
-> Content-Length: 50
-> 
-} [50 bytes data]
-{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJpZC1tYW5hZ2VyIiwiZW1haWwiOiJtYW5hZ2VyQHViYmVlLmZyIiwicm9sZSI6IkVORVJHWV9NQU5BR0VSIiwib3JnYW5pemF0aW9uSWQiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEiLCJvcmdhbml6YXRpb25OYW1lIjoiVUJCRUUiLCJpYXQiOjE3NzE4NDgxNzEsImV4cCI6MTc3MTg5MTM3MX0.HUaQh5H6USABtHxUkPrtUXan6349OtMegQYOGin4430","user":{"sub":"id-manager","email":"manager@ubbee.fr","role":"ENERGY_MANAGER","organizationId":"11111111-1111-1111-1111-111111111111","organizationName":"UBBEE"}}< HTTP/1.1 201 Created
-< X-Powered-By: Express
-< Access-Control-Allow-Origin: *
-< Content-Type: application/json; charset=utf-8
-< Content-Length: 513
-< ETag: W/"201-LDQtUVR4a1qNOZf0JX3xU5k9jFI"
-< Date: Mon, 23 Feb 2026 12:02:51 GMT
-< Connection: keep-alive
-< Keep-Alive: timeout=5
-< 
-{ [513 bytes data]
-* Connection #0 to host 127.0.0.1 left intact
+* connect to 127.0.0.1 port 3001 from 127.0.0.1 port 58140 failed: Connection refused
+* Failed to connect to 127.0.0.1 port 3001 after 0 ms: Couldn't connect to server
+* Closing connection

@@ -10,6 +10,7 @@ import { Alert } from './entities/alert.entity';
 import { Rule } from './entities/rule.entity';
 import { Organization } from './entities/organization.entity';
 import { User } from './entities/user.entity';
+import { CustomRole } from './entities/custom-role.entity';
 import { Gateway } from './entities/gateway.entity';
 import { DeviceTemplate } from './entities/device-template.entity';
 import { PayloadMapping } from './entities/payload-mapping.entity';
@@ -30,11 +31,11 @@ import { MqttService } from './mqtt.service';
     TypeOrmModule.forRoot({
       type: 'better-sqlite3',
       database: 'smartbuild_v3.sqlite',
-      entities: [Site, Zone, Sensor, Reading, Alert, Rule, Organization, User, Gateway, DeviceTemplate, PayloadMapping],
+      entities: [Site, Zone, Sensor, Reading, Alert, Rule, Organization, User, CustomRole, Gateway, DeviceTemplate, PayloadMapping],
       synchronize: true, // Auto-create tables (Dev only)
       logging: false, // Turn off logging to reduce noise
     }),
-    TypeOrmModule.forFeature([Site, Zone, Sensor, Reading, Alert, Rule, Organization, User, Gateway, DeviceTemplate, PayloadMapping]),
+    TypeOrmModule.forFeature([Site, Zone, Sensor, Reading, Alert, Rule, Organization, User, CustomRole, Gateway, DeviceTemplate, PayloadMapping]),
     NotificationsModule,
     AiModule,
     AuthModule,

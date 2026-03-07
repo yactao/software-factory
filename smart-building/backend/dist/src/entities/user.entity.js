@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = exports.UserRole = void 0;
 const typeorm_1 = require("typeorm");
 const organization_entity_1 = require("./organization.entity");
+const custom_role_entity_1 = require("./custom-role.entity");
 var UserRole;
 (function (UserRole) {
     UserRole["SUPER_ADMIN"] = "SUPER_ADMIN";
@@ -58,9 +59,9 @@ __decorate([
     __metadata("design:type", organization_entity_1.Organization)
 ], User.prototype, "organization", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)('CustomRole', 'users', { nullable: true, onDelete: 'SET NULL' }),
+    (0, typeorm_1.ManyToOne)(() => custom_role_entity_1.CustomRole, customRole => customRole.users, { nullable: true, onDelete: 'SET NULL' }),
     (0, typeorm_1.JoinColumn)({ name: 'customRoleId' }),
-    __metadata("design:type", Object)
+    __metadata("design:type", custom_role_entity_1.CustomRole)
 ], User.prototype, "customRole", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
