@@ -1,8 +1,5 @@
 ==== PULL DES NOUVEAUX FICHIERS FRONTEND ====
-From https://github.com/yactao/gravity-lab
-   31ca5d2..59faed4  main       -> origin/main
-warning: unable to rmdir 'superpowers': Directory not empty
-HEAD is now at 59faed4 feat(ui): merge inventory into network dashboard and fix clients visibility
+HEAD is now at f7db897 feat(deploy): selective RBAC and CVC control rollout
 Already up to date.
 \n==== RECOMPILATION FRONTEND ====
 npm warn EBADENGINE Unsupported engine {
@@ -11,7 +8,7 @@ npm warn EBADENGINE   required: { node: '>=22.0.0', npm: '>=10.5.1' },
 npm warn EBADENGINE   current: { node: 'v20.20.0', npm: '10.8.2' }
 npm warn EBADENGINE }
 
-up to date, audited 563 packages in 3s
+up to date, audited 563 packages in 2s
 
 220 packages are looking for funding
   run `npm fund` for details
@@ -22,11 +19,6 @@ To address all issues, run:
   npm audit fix
 
 Run `npm audit` for details.
-npm notice
-npm notice New major version of npm available! 10.8.2 -> 11.11.0
-npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.0
-npm notice To update run: npm install -g npm@11.11.0
-npm notice
 
 > frontend@0.1.0 build
 > next build
@@ -42,45 +34,22 @@ npm notice
 - Environments: .env.production
 
   Creating an optimized production build ...
-✓ Compiled successfully in 27.1s
+✓ Compiled successfully in 24.1s
   Running TypeScript ...
-  Collecting page data using 1 worker ...
-  Generating static pages using 1 worker (0/22) ...
-  Generating static pages using 1 worker (5/22) 
-  Generating static pages using 1 worker (10/22) 
-  Generating static pages using 1 worker (16/22) 
-✓ Generating static pages using 1 worker (22/22) in 526.2ms
-  Finalizing page optimization ...
+Failed to compile.
 
-Route (app)
-┌ ○ /
-├ ○ /_not-found
-├ ○ /admin/integrations/mapping
-├ ○ /alerts
-├ ○ /billing
-├ ○ /clients
-├ ƒ /clients/[id]
-├ ○ /energy
-├ ○ /license
-├ ○ /login
-├ ○ /maintenance
-├ ○ /map
-├ ○ /network
-├ ○ /network/console
-├ ○ /network/system-health
-├ ○ /onboarding
-├ ○ /rules
-├ ○ /settings
-├ ○ /sites
-├ ƒ /sites/[id]
-├ ○ /updates
-└ ○ /welcome
+./src/components/dashboard/NetworkTopology.tsx:18:8
+Type error: Cannot find module '@xyflow/react' or its corresponding type declarations.
 
-
-○  (Static)   prerendered as static content
-ƒ  (Dynamic)  server-rendered on demand
-
+[0m [90m 16 |[39m     useReactFlow[33m,[39m
+ [90m 17 |[39m     [33mMarkerType[39m[33m,[39m
+[31m[1m>[22m[39m[90m 18 |[39m } [36mfrom[39m [32m'@xyflow/react'[39m[33m;[39m
+ [90m    |[39m        [31m[1m^[22m[39m
+ [90m 19 |[39m [36mimport[39m [32m'@xyflow/react/dist/style.css'[39m[33m;[39m
+ [90m 20 |[39m [36mimport[39m { [33mCloud[39m[33m,[39m [33mCpu[39m[33m,[39m [33mRadio[39m[33m,[39m [33mShieldAlert[39m[33m,[39m [33mShieldCheck[39m[33m,[39m [33mActivity[39m } [36mfrom[39m [32m'lucide-react'[39m[33m;[39m
+ [90m 21 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
 \n==== REDEMARRAGE DE PM2 FRONTEND ====
 Use --update-env to update environment variables
-[PM2] Applying action reloadProcessId on app [gtb-frontend](ids: [ 0 ])
-[PM2] [gtb-frontend](0) ✓
+[PM2] Applying action reloadProcessId on app [gtb-frontend](ids: [ 4 ])
+[PM2] [gtb-frontend](4) ✓
