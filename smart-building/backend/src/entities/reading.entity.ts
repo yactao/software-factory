@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, Index } from 'typeor
 import { Sensor } from './sensor.entity';
 
 @Entity()
+@Index(['sensor', 'timestamp'])
 export class Reading {
     @PrimaryGeneratedColumn('uuid')
     id: string;

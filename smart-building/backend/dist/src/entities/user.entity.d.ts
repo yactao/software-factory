@@ -2,7 +2,7 @@ import { Organization } from './organization.entity';
 import { CustomRole } from './custom-role.entity';
 export declare enum UserRole {
     SUPER_ADMIN = "SUPER_ADMIN",
-    ENERGY_MANAGER = "ENERGY_MANAGER",
+    ADMIN_FONCTIONNEL = "ADMIN_FONCTIONNEL",
     CLIENT = "CLIENT"
 }
 export declare class User {

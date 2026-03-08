@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTenant } from "@/lib/TenantContext";
-import { Briefcase, Activity, Users, Settings, ArrowLeft, Building2, Plus, MapPin, Building, X, Mail, Shield, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Briefcase, Activity, Users, Settings, ArrowLeft, Building2, Plus, MapPin, Building, X, Mail, Shield, MoreVertical, Edit2, Trash2, CheckCircle2, Cpu, Eye, Lock } from "lucide-react";
 import { BuildingModel } from "@/components/dashboard/BuildingModel";
+import { cn } from "@/lib/utils";
 
 export default function ClientDetailsPage() {
     const params = useParams();
@@ -351,59 +352,54 @@ export default function ClientDetailsPage() {
 
                 {/* 3. GESTION UTILISATEURS */}
                 {activeTab === "users" && (
-                    <div className="glass-card p-6 rounded-2xl border-slate-200 dark:border-white/5 min-h-[400px]">
-                        <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-white/5">
+                    <div className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 dark:shadow-none min-h-[400px]">
+                        <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center">
-                                    <Users className="w-5 h-5 mr-2 text-primary" />
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center">
+                                    <Users className="w-5 h-5 mr-3 text-primary" />
                                     Gestion des Utilisateurs
                                 </h3>
-                                <p className="text-xs text-slate-500 mt-1">Supervisez les accès ({client.name})</p>
+                                <p className="text-sm text-slate-500 mt-1 font-medium ml-8">Supervisez les accès ({client.name})</p>
                             </div>
                             {isAdmin && (
-                                <button onClick={() => setIsAddUserOpen(true)} className="px-4 py-2 bg-primary/10 hover:bg-primary/20 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-primary dark:text-emerald-400 font-bold rounded-xl transition-all shadow-sm flex items-center text-sm border border-primary/20">
-                                    <Mail className="h-4 w-4 mr-2" /> Inviter un collaborateur
+                                <button onClick={() => setIsAddUserOpen(true)} className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 px-4 py-2 rounded-xl font-bold text-sm transition-colors border border-primary/20">
+                                    <Mail className="w-4 h-4" /> Inviter
                                 </button>
                             )}
                         </div>
 
                         {usersList.length > 0 ? (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-slate-200 dark:border-white/10 text-xs text-slate-500 uppercase tracking-wider">
-                                            <th className="pb-3 font-bold">Nom</th>
-                                            <th className="pb-3 font-bold">Email</th>
-                                            <th className="pb-3 font-bold">Rôle</th>
-                                            <th className="pb-3 font-bold">Créé le</th>
-                                            <th className="pb-3 font-bold text-right pr-6">Actions</th>
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider font-bold">
+                                        <tr>
+                                            <th className="px-6 py-4">Collaborateur</th>
+                                            <th className="px-6 py-4">Rôle</th>
+                                            <th className="px-6 py-4">Statut</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-sm">
+                                    <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                                         {usersList.map((user: any) => (
-                                            <tr key={user.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors group">
-                                                <td className="py-4 font-bold text-slate-900 dark:text-white flex items-center">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center mr-3 text-xs text-primary">
-                                                        {user.name.substring(0, 2).toUpperCase()}
-                                                    </div>
-                                                    {user.name}
+                                            <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-slate-900 dark:text-white">{user.name}</div>
+                                                    <div className="text-xs text-slate-500 opacity-70"><a href={`mailto:${user.email}`} className="hover:text-primary">{user.email}</a></div>
                                                 </td>
-                                                <td className="py-4 text-slate-600 dark:text-slate-300">
-                                                    <a href={`mailto:${user.email}`} className="flex items-center hover:text-primary">
-                                                        <Mail className="w-3 h-3 mr-1.5 opacity-50" />
-                                                        {user.email}
-                                                    </a>
-                                                </td>
-                                                <td className="py-4">
-                                                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest rounded flex items-center inline-flex ${user.role === 'SUPER_ADMIN' ? 'bg-purple-500/10 text-purple-600' : user.role === 'ENERGY_MANAGER' ? 'bg-orange-500/10 text-orange-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                                                        <Shield className="w-3 h-3 mr-1 opacity-70" />
-                                                        {user.role}
+                                                <td className="px-6 py-4">
+                                                    <span className={cn(
+                                                        "px-2.5 py-1 font-bold rounded text-[10px] uppercase tracking-wider border",
+                                                        user.role === "ENERGY_MANAGER" ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-500/20" :
+                                                            user.role === "TECHNICIAN" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/20" :
+                                                                "bg-slate-50 dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10"
+                                                    )}>
+                                                        {user.role === "ENERGY_MANAGER" ? "Energy Manager" : user.role === "TECHNICIAN" ? "Technicien" : "Lecteur Invité"}
                                                     </span>
                                                 </td>
-                                                <td className="py-4 text-slate-500 italic text-xs">
-                                                    {new Date(user.createdAt).toLocaleDateString()}
+                                                <td className="px-6 py-4">
+                                                    <span className="flex items-center gap-1.5 text-emerald-500 font-bold text-xs"><CheckCircle2 className="w-3.5 h-3.5" /> Actif</span>
                                                 </td>
-                                                <td className="py-4 text-right pr-6 relative">
+                                                <td className="px-6 py-4 text-right relative">
                                                     {isAdmin && (
                                                         <>
                                                             <button
@@ -442,9 +438,9 @@ export default function ClientDetailsPage() {
                                 </table>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center p-12 text-slate-500 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl">
+                            <div className="flex flex-col items-center justify-center p-12 text-slate-500 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl m-6">
                                 <Users className="h-10 w-10 mb-3 opacity-20" />
-                                <p className="text-sm">Aucun utilisateur rattaché à ce client.</p>
+                                <p className="text-sm font-medium">Aucun utilisateur rattaché à ce client.</p>
                             </div>
                         )}
                     </div>
@@ -522,44 +518,82 @@ export default function ClientDetailsPage() {
 
             {/* Modal: Invite User */}
             {isAddUserOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-white dark:bg-[#0B1120] rounded-2xl border border-slate-200 dark:border-white/10 p-6 shadow-2xl relative">
-                        <button onClick={() => setIsAddUserOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white"><X className="h-5 w-5" /></button>
-                        <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white flex items-center"><Mail className="w-5 h-5 mr-2 text-primary" /> Inviter un Utilisateur</h2>
-                        <p className="text-xs text-slate-500 mb-6">Un email d'invitation sera envoyé avec un lien sécurisé pour qu'il définisse son mot de passe.</p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+                    <div className="w-full max-w-2xl bg-white dark:bg-[#0B1120] rounded-3xl border border-slate-200 dark:border-white/10 p-8 shadow-2xl relative my-auto">
+                        <button onClick={() => setIsAddUserOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                            <X className="h-5 w-5" />
+                        </button>
 
-                        <form onSubmit={handleCreateUser} className="space-y-5">
-                            <div>
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nom Complet d'affichage</label>
-                                <input type="text" required value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:border-primary outline-none transition-all placeholder-slate-400" placeholder="ex: Jean Dupont" />
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center mb-2">
+                                <Users className="w-6 h-6 mr-3 text-primary" />
+                                Inviter un collaborateur
+                            </h2>
+                            <p className="text-sm text-slate-500 font-medium ml-9">
+                                Ajoutez un membre à l'espace {client.name} et définissez ses droits d'accès.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleCreateUser} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">Nom complet</label>
+                                    <input required type="text" value={newUser.name} onChange={e => setNewUser({ ...newUser, name: e.target.value })} placeholder="ex: Jean Dupont" className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary text-slate-900 dark:text-white transition-all font-medium" />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-2">Email</label>
+                                    <input required type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} placeholder="jean@entreprise.com" className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:border-primary text-slate-900 dark:text-white transition-all font-medium" />
+                                </div>
                             </div>
 
                             <div>
-                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Adresse Email</label>
-                                <input type="email" required value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:border-primary outline-none transition-all placeholder-slate-400" placeholder="jean.dupont@entreprise.com" />
-                            </div>
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-white/5 pb-2">
+                                    Niveau d'Autorisation
+                                </h3>
 
-                            <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-200 dark:border-white/10">
-                                <label className="text-sm font-bold text-slate-900 dark:text-white mb-3 block">Délégation de Droits & Rôle</label>
                                 <div className="space-y-3">
-                                    <label className="flex items-start cursor-pointer group">
-                                        <input type="radio" name="role" value="CLIENT" checked={newUser.role === 'CLIENT'} onChange={e => setNewUser({ ...newUser, role: e.target.value })} className="mt-1 mr-3 text-primary focus:ring-primary" />
+                                    <label className={cn("flex items-start p-4 rounded-xl border-2 cursor-pointer transition-all", newUser.role === "ENERGY_MANAGER" ? "border-orange-500 bg-orange-500/5" : "border-slate-100 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20")}>
+                                        <input type="radio" name="role" value="ENERGY_MANAGER" checked={newUser.role === "ENERGY_MANAGER"} onChange={() => setNewUser({ ...newUser, role: "ENERGY_MANAGER" })} className="mt-1 mr-4 hidden" />
+                                        <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 mr-4 shrink-0 transition-colors", newUser.role === "ENERGY_MANAGER" ? "border-orange-500" : "border-slate-300 dark:border-slate-600")}>
+                                            {newUser.role === "ENERGY_MANAGER" && <div className="w-2.5 h-2.5 bg-orange-500 rounded-full" />}
+                                        </div>
                                         <div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white block group-hover:text-primary transition-colors">Client Standard</span>
-                                            <span className="text-xs text-slate-500">Peut consulter les tableaux de bord et recevoir des alertes pour ses propres sites. Ne peut pas modifier ou inviter d'autres personnes.</span>
+                                            <span className={cn("text-base font-black flex items-center gap-2", newUser.role === "ENERGY_MANAGER" ? "text-orange-600" : "text-slate-700 dark:text-slate-300")}>
+                                                <Lock className="w-4 h-4" /> Energy Manager
+                                            </span>
+                                            <span className="text-sm text-slate-500 mt-1 block">Accès total à la supervision, modification des consignes CVC, gestion des règles métiers et exports énergétiques avancés. Droit d'inviter d'autres techniciens.</span>
                                         </div>
                                     </label>
-                                    <label className="flex items-start cursor-pointer group">
-                                        <input type="radio" name="role" value="ENERGY_MANAGER" checked={newUser.role === 'ENERGY_MANAGER'} onChange={e => setNewUser({ ...newUser, role: e.target.value })} className="mt-1 mr-3 text-orange-500 focus:ring-orange-500" />
+
+                                    <label className={cn("flex items-start p-4 rounded-xl border-2 cursor-pointer transition-all", newUser.role === "TECHNICIAN" ? "border-blue-500 bg-blue-500/5" : "border-slate-100 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20")}>
+                                        <input type="radio" name="role" value="TECHNICIAN" checked={newUser.role === "TECHNICIAN"} onChange={() => setNewUser({ ...newUser, role: "TECHNICIAN" })} className="mt-1 mr-4 hidden" />
+                                        <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 mr-4 shrink-0 transition-colors", newUser.role === "TECHNICIAN" ? "border-blue-500" : "border-slate-300 dark:border-slate-600")}>
+                                            {newUser.role === "TECHNICIAN" && <div className="w-2.5 h-2.5 bg-blue-500 rounded-full" />}
+                                        </div>
                                         <div>
-                                            <span className="text-sm font-bold text-slate-900 dark:text-white block group-hover:text-orange-500 transition-colors">Energy Manager (Admin)</span>
-                                            <span className="text-xs text-slate-500">Droits étendus : création de sites, ajout de zones, paramétrage CVC, et invitation d'autres utilisateurs.</span>
+                                            <span className={cn("text-base font-black flex items-center gap-2", newUser.role === "TECHNICIAN" ? "text-blue-600" : "text-slate-700 dark:text-slate-300")}>
+                                                <Cpu className="w-4 h-4" /> Technicien (Mainteneur)
+                                            </span>
+                                            <span className="text-sm text-slate-500 mt-1 block">Pilote le CVC et les équipements en temps réel, acquitte les alertes réseau/matériel. Ne peut pas modifier les scénarios AI ni inviter d'autres membres.</span>
+                                        </div>
+                                    </label>
+
+                                    <label className={cn("flex items-start p-4 rounded-xl border-2 cursor-pointer transition-all", newUser.role === "CLIENT" ? "border-slate-400 bg-slate-50 dark:bg-white/5" : "border-slate-100 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20")}>
+                                        <input type="radio" name="role" value="CLIENT" checked={newUser.role === "CLIENT"} onChange={() => setNewUser({ ...newUser, role: "CLIENT" })} className="mt-1 mr-4 hidden" />
+                                        <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 mr-4 shrink-0 transition-colors", newUser.role === "CLIENT" ? "border-slate-500" : "border-slate-300 dark:border-slate-600")}>
+                                            {newUser.role === "CLIENT" && <div className="w-2.5 h-2.5 bg-slate-500 rounded-full" />}
+                                        </div>
+                                        <div>
+                                            <span className={cn("text-base font-black flex items-center gap-2", newUser.role === "CLIENT" ? "text-slate-800 dark:text-white" : "text-slate-700 dark:text-slate-300")}>
+                                                <Eye className="w-4 h-4" /> Lecteur (Read-Only)
+                                            </span>
+                                            <span className="text-sm text-slate-500 mt-1 block">Accès consultatif limité aux dashboards de KPI environnementaux et énergétiques. Aucune action autorisée (ni CVC, ni alertes).</span>
                                         </div>
                                     </label>
                                 </div>
                             </div>
 
-                            <button type="submit" className="w-full py-3 mt-6 bg-primary hover:bg-emerald-400 text-white font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.4)] flex justify-center items-center">
+                            <button type="submit" className="w-full bg-primary hover:bg-emerald-500 text-white font-black py-4 rounded-xl transition-all disabled:opacity-50 mt-4 shadow-lg shadow-primary/30 active:scale-[0.98]">
                                 Envoyer l'invitation à {client.name}
                             </button>
                         </form>

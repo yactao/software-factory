@@ -2,6 +2,12 @@ import { Body, Controller, Get, Post, Put, Delete, Param, Query, Headers, UseGua
 import { AppService } from './app.service';
 import { RulesEngineService } from './rules-engine.service';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
+import { ZodValidationPipe } from './pipes/zod-validation.pipe';
+import { InviteUserSchema } from './dto/invite-user.schema';
+import { IotWebhookSchema } from './dto/webhook.schema';
+import { CustomRoleSchema } from './dto/custom-role.schema';
+import { UsePipes } from '@nestjs/common';
 
 @Controller('api')
 export class AppController {
@@ -81,6 +87,18 @@ export class AppController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Put('zones/:id')
+  updateZone(@Param('id') id: string, @Body() zoneData: any) {
+    return this.appService.updateZone(id, zoneData);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('zones/:id')
+  deleteZone(@Param('id') id: string) {
+    return this.appService.deleteZone(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('sensors')
   getSensors(@Headers('x-organization-id') orgId: string, @Headers('x-user-role') role?: string) {
     const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
@@ -152,6 +170,7 @@ export class AppController {
   // IoT Webhook entrypoint (Secured or Unsecured depending on architecture, here we secure it for demo)
   @UseGuards(JwtAuthGuard)
   @Post('iot/webhook')
+  @UsePipes(new ZodValidationPipe(IotWebhookSchema))
   processIotWebhook(@Body() webhookData: any) {
     return this.appService.processIotWebhook(webhookData);
   }
@@ -181,8 +200,9 @@ export class AppController {
     return this.appService.getUsers(orgId);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('users')
+  @UsePipes(new ZodValidationPipe(InviteUserSchema))
   createUser(@Body() userData: any) {
     return this.appService.createUser(userData);
   }
@@ -197,6 +217,32 @@ export class AppController {
   @Delete('users/:id')
   deleteUser(@Param('id') id: string) {
     return this.appService.deleteUser(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('custom-roles')
+  getCustomRoles(@Query('organizationId') orgId?: string) {
+    return this.appService.getCustomRoles(orgId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post('custom-roles')
+  @UsePipes(new ZodValidationPipe(CustomRoleSchema))
+  createCustomRole(@Body() roleData: any) {
+    return this.appService.createCustomRole(roleData);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Put('custom-roles/:id')
+  @UsePipes(new ZodValidationPipe(CustomRoleSchema))
+  updateCustomRole(@Param('id') id: string, @Body() roleData: any) {
+    return this.appService.updateCustomRole(id, roleData);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('custom-roles/:id')
+  deleteCustomRole(@Param('id') id: string) {
+    return this.appService.deleteCustomRole(id);
   }
 
   @UseGuards(JwtAuthGuard)

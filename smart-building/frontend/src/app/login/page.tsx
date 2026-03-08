@@ -161,14 +161,6 @@ export default function LoginPage() {
                         </button>
                     </div>
                 </form>
-
-                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/10">
-                    <p className="text-xs text-center text-slate-500 dark:text-slate-400 mb-2 font-medium uppercase tracking-wider">Identifiants de Démonstration (V3)</p>
-                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                        <div className="p-2 bg-slate-100 dark:bg-white/5 rounded"><b>Admin:</b> admin@ubbee.fr<br /><b>Mdp:</b> admin</div>
-                        <div className="p-2 bg-slate-100 dark:bg-white/5 rounded"><b>Manager:</b> manager@ubbee.fr<br /><b>Mdp:</b> password</div>
-                    </div>
-                </div>
             </div>
         </div>
     );

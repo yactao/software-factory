@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, DeleteDateColumn } from 'typeorm';
 import { Zone } from './zone.entity';
 import { Reading } from './reading.entity';
 import { Gateway } from './gateway.entity';
@@ -28,4 +28,7 @@ export class Sensor {
 
     @ManyToOne(() => Gateway, gateway => gateway.sensors, { nullable: true })
     gateway: Gateway;
+
+    @DeleteDateColumn()
+    deletedAt: Date;
 }

@@ -24,6 +24,7 @@ const alert_entity_1 = require("./entities/alert.entity");
 const organization_entity_1 = require("./entities/organization.entity");
 const user_entity_1 = require("./entities/user.entity");
 const gateway_entity_1 = require("./entities/gateway.entity");
+const custom_role_entity_1 = require("./entities/custom-role.entity");
 const payload_formatter_service_1 = require("./iot/payload-formatter.service");
 const rules_engine_service_1 = require("./rules-engine.service");
 const events_gateway_1 = require("./iot/events.gateway");
@@ -35,11 +36,12 @@ let AppService = class AppService {
     alertRepo;
     orgRepo;
     userRepo;
+    customRoleRepo;
     gatewayRepo;
     payloadFormatter;
     rulesEngine;
     eventsGateway;
-    constructor(siteRepo, zoneRepo, sensorRepo, readingRepo, alertRepo, orgRepo, userRepo, gatewayRepo, payloadFormatter, rulesEngine, eventsGateway) {
+    constructor(siteRepo, zoneRepo, sensorRepo, readingRepo, alertRepo, orgRepo, userRepo, customRoleRepo, gatewayRepo, payloadFormatter, rulesEngine, eventsGateway) {
         this.siteRepo = siteRepo;
         this.zoneRepo = zoneRepo;
         this.sensorRepo = sensorRepo;
@@ -47,6 +49,7 @@ let AppService = class AppService {
         this.alertRepo = alertRepo;
         this.orgRepo = orgRepo;
         this.userRepo = userRepo;
+        this.customRoleRepo = customRoleRepo;
         this.gatewayRepo = gatewayRepo;
         this.payloadFormatter = payloadFormatter;
         this.rulesEngine = rulesEngine;
@@ -94,7 +97,7 @@ let AppService = class AppService {
             const orgLeroy = (await this.orgRepo.findOne({ where: { id: org3Id } }));
             const orgMaison = (await this.orgRepo.findOne({ where: { id: org4Id } }));
             const adminUser = this.userRepo.create({ name: 'Super Admin', email: 'admin@ubbee.fr', password: 'admin', role: user_entity_1.UserRole.SUPER_ADMIN, organization: orgUbbee });
-            const managerUser = this.userRepo.create({ name: 'Energy Manager', email: 'manager@ubbee.fr', password: 'password', role: user_entity_1.UserRole.ENERGY_MANAGER, organization: orgUbbee });
+            const managerUser = this.userRepo.create({ name: 'Energy Manager', email: 'manager@ubbee.fr', password: 'password', role: user_entity_1.UserRole.ADMIN_FONCTIONNEL, organization: orgUbbee });
             const ubbeeClient = this.userRepo.create({ name: 'Client Ubbee', email: 'client@ubbee.fr', password: 'password', role: user_entity_1.UserRole.CLIENT, organization: orgUbbee });
             const casaClient = this.userRepo.create({ name: 'Responsable Casa', email: 'client@casa.fr', password: 'password', role: user_entity_1.UserRole.CLIENT, organization: orgCasa });
             await this.userRepo.save([adminUser, managerUser, ubbeeClient, casaClient]);
@@ -296,6 +299,13 @@ let AppService = class AppService {
         });
         return this.zoneRepo.save(newZone);
     }
+    async updateZone(id, zoneData) {
+        await this.zoneRepo.update(id, zoneData);
+        return this.zoneRepo.findOne({ where: { id } });
+    }
+    async deleteZone(id) {
+        return this.zoneRepo.delete(id);
+    }
     async getGateways(orgId) {
         const where = orgId ? { site: { organizationId: orgId } } : {};
         return this.gatewayRepo.find({ where, relations: ['site', 'sensors'] });
@@ -465,7 +475,7 @@ let AppService = class AppService {
             return [];
         const searchStr = `%${query}%`;
         const results = [];
-        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ENERGY_MANAGER');
+        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ADMIN_FONCTIONNEL');
         const sitesQuery = this.siteRepo.createQueryBuilder('site')
             .leftJoinAndSelect('site.organization', 'organization')
             .where('(site.name LIKE :search OR site.city LIKE :search)', { search: searchStr });
@@ -519,7 +529,7 @@ let AppService = class AppService {
             subtitle: `Passerelle • ${g.serialNumber}`,
             url: `/network`
         }));
-        if (role === 'SUPER_ADMIN' || role === 'ENERGY_MANAGER') {
+        if (role === 'SUPER_ADMIN' || role === 'ADMIN_FONCTIONNEL') {
             const orgs = await this.orgRepo.createQueryBuilder('org')
                 .where('org.name LIKE :search', { search: searchStr })
                 .take(3)
@@ -569,6 +579,28 @@ let AppService = class AppService {
         await this.userRepo.delete(id);
         return { success: true };
     }
+    async getCustomRoles(organizationId) {
+        if (organizationId) {
+            return this.customRoleRepo.find({ where: { organization: { id: organizationId } } });
+        }
+        return this.customRoleRepo.find({ relations: ['organization'] });
+    }
+    async createCustomRole(roleData) {
+        let org = null;
+        if (roleData.organizationId) {
+            org = await this.orgRepo.findOne({ where: { id: roleData.organizationId } });
+        }
+        const role = this.customRoleRepo.create({ ...roleData, organization: org });
+        return this.customRoleRepo.save(role);
+    }
+    async updateCustomRole(id, roleData) {
+        await this.customRoleRepo.update(id, roleData);
+        return this.customRoleRepo.findOne({ where: { id } });
+    }
+    async deleteCustomRole(id) {
+        await this.customRoleRepo.delete(id);
+        return { success: true };
+    }
     async executeEquipmentAction(payload) {
         console.log(`[ACTION Triggered] Eq: ${payload.equipmentId} | Action: ${payload.action} | Val: ${payload.value}`);
         this.eventsGateway.server.emit('sensor_data', {
@@ -581,7 +613,7 @@ let AppService = class AppService {
         return { success: true, message: `Action ${payload.action} command sent successfully.`, details: payload };
     }
     async getDashboardKpis(orgId, role) {
-        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ENERGY_MANAGER');
+        const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ADMIN_FONCTIONNEL');
         const totalClients = isGlobalContext ? await this.orgRepo.count() : 1;
         let sitesQuery = this.siteRepo.createQueryBuilder('site');
         if (!isGlobalContext)
@@ -658,8 +690,10 @@ exports.AppService = AppService = __decorate([
     __param(4, (0, typeorm_1.InjectRepository)(alert_entity_1.Alert)),
     __param(5, (0, typeorm_1.InjectRepository)(organization_entity_1.Organization)),
     __param(6, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
-    __param(7, (0, typeorm_1.InjectRepository)(gateway_entity_1.Gateway)),
+    __param(7, (0, typeorm_1.InjectRepository)(custom_role_entity_1.CustomRole)),
+    __param(8, (0, typeorm_1.InjectRepository)(gateway_entity_1.Gateway)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

@@ -4,7 +4,7 @@ import { CustomRole } from './custom-role.entity';
 
 export enum UserRole {
     SUPER_ADMIN = 'SUPER_ADMIN',
-    ENERGY_MANAGER = 'ENERGY_MANAGER',
+    ADMIN_FONCTIONNEL = 'ADMIN_FONCTIONNEL',
     CLIENT = 'CLIENT',
 }
 

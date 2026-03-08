@@ -1,0 +1,8 @@
+﻿src/app/settings/components/modals/InviteUserModal.tsx(33,26): error TS2339: Property 'errors' does not exist on type 'ZodError<{ name: string; email: string; role: string; }>'.
+src/app/settings/components/modals/InviteUserModal.tsx(33,41): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/app/settings/components/tabs/PlanningTab.tsx(47,41): error TS2345: Argument of type '(exc: { id: number | string; type: string; date: string; name: string; startTime?: string; endTime?: string; }) => JSX.Element' is not assignable to parameter of type '(value: Exception, index: number, array: Exception[]) => Element'.
+  Types of parameters 'exc' and 'value' are incompatible.
+    Type 'Exception' is not assignable to type '{ id: string | number; type: string; date: string; name: string; startTime?: string | undefined; endTime?: string | undefined; }'.
+      Types of property 'id' are incompatible.
+        Type 'string | number | undefined' is not assignable to type 'string | number'.
+          Type 'undefined' is not assignable to type 'string | number'.

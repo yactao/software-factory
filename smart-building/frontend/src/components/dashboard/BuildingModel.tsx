@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Box, Html } from "@react-three/drei";
 import * as THREE from "three";
-import { Thermometer, Wind, MapPin, Layers, Settings2, Info, Users } from "lucide-react";
+import { Thermometer, Wind, MapPin, Layers, Settings2, Info, Users, Expand, Shrink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BuildingModelProps {
     siteName?: string;
@@ -112,30 +113,96 @@ function Room({ position, size, zone, activeLayer, forceMockData }: any) {
 }
 
 export function BuildingModel({ siteName = "Bâtiment Principal", zones = [], forceMockData = false }: BuildingModelProps) {
-    const [selectedFloor, setSelectedFloor] = useState("RDC");
+    const [selectedFloor, setSelectedFloor] = useState("Tous");
     const [activeLayer, setActiveLayer] = useState("temperature"); // temperature, co2, occupancy, all
 
-    let displayZones = zones;
+    const [isExpanded, setIsExpanded] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsExpanded(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = async () => {
+        if (!document.fullscreenElement) {
+            if (containerRef.current?.requestFullscreen) {
+                await containerRef.current.requestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            }
+        }
+    };
 
     // Fix for Demo: If we force mock data (because site has a gateway) but the site has NO zones configured yet,
     // we inject default mock zones so the 3D twin isn't completely empty!
-    if (forceMockData && (!zones || zones.length === 0)) {
-        displayZones = [
-            { id: 'mock-1', name: 'Zone Principale', floor: 'RDC', position: [-2, 0, 0], size: [3, 1.5, 3] },
-            { id: 'mock-2', name: 'Zone Secondaire', floor: 'RDC', position: [2, 0, 0], size: [2.5, 1.5, 2.5] }
-        ];
-    }
+    const displayZones = useMemo(() => {
+        if (forceMockData && (!zones || zones.length === 0)) {
+            if (siteName.toLowerCase().includes('hotel')) {
+                return [
+                    { id: 'mock-h1', name: 'Réception & Lobby', floor: 'RDC', position: [-2, 0, 1], size: [4, 1.5, 3] },
+                    { id: 'mock-h2', name: 'Restaurant', floor: 'RDC', position: [2.5, 0, 1], size: [3, 1.5, 3] },
+                    { id: 'mock-h3', name: 'Chambre 101', floor: 'Étage 1', position: [-2.5, 0, 1], size: [2, 1.5, 2] },
+                    { id: 'mock-h4', name: 'Chambre 102', floor: 'Étage 1', position: [0.5, 0, 1], size: [2, 1.5, 2] },
+                    { id: 'mock-h5', name: 'Suite 103', floor: 'Étage 1', position: [3.5, 0, 1], size: [2.5, 1.5, 2] },
+                    { id: 'mock-h6', name: 'Chambre 201', floor: 'Étage 2', position: [-2.5, 0, 1], size: [2, 1.5, 2] },
+                    { id: 'mock-h7', name: 'Chambre 202', floor: 'Étage 2', position: [0.5, 0, 1], size: [2, 1.5, 2] },
+                    { id: 'mock-h8', name: 'Suite Présidentielle', floor: 'Étage 2', position: [3.5, 0, 1], size: [2.5, 1.5, 2] },
+                ];
+            } else {
+                return [
+                    { id: 'mock-1', name: 'Zone Principale', floor: 'RDC', position: [-2, 0, 0], size: [3, 1.5, 3] },
+                    { id: 'mock-2', name: 'Zone Secondaire', floor: 'RDC', position: [2, 0, 0], size: [2.5, 1.5, 2.5] }
+                ];
+            }
+        }
+        return zones || [];
+    }, [zones, forceMockData, siteName]);
 
-    const availableFloors = displayZones.length > 0 ? Array.from(new Set(displayZones.map(z => z.floor || "RDC"))) : ["RDC"];
+    const availableFloors = useMemo(() => {
+        return displayZones.length > 0 ? ["Tous", ...Array.from(new Set(displayZones.map(z => z.floor || "RDC")))] : ["Tous"];
+    }, [displayZones]);
 
-    const currentFloorZones = displayZones.filter(z => (z.floor || "RDC") === selectedFloor);
+    const getFloorOffset = (floorName: string) => {
+        if (!floorName) return 0;
+        const low = floorName.toLowerCase();
+        if (low.includes("1")) return 3.5;
+        if (low.includes("2")) return 7.0;
+        if (low.includes("3")) return 10.5;
+        return 0; // RDC
+    };
+
+    const currentFloorZones = useMemo(() => {
+        return selectedFloor === "Tous"
+            ? displayZones
+            : displayZones.filter(z => (z.floor || "RDC") === selectedFloor);
+    }, [displayZones, selectedFloor]);
 
     // Calcule la taille totale du plancher dynamiquement pour le background
     const floorWidth = 10;
     const floorDepth = 10;
 
     return (
-        <div className="w-full h-full relative flex flex-col pointer-events-auto bg-slate-50 dark:bg-black/20 rounded-xl overflow-hidden shadow-inner">
+        <div ref={containerRef} className={cn(
+            "w-full relative flex flex-col pointer-events-auto overflow-hidden shadow-inner transition-all duration-300",
+            isExpanded ? "fixed inset-0 z-[100] bg-slate-100 dark:bg-slate-900 rounded-none w-screen h-screen" : "h-full bg-slate-50 dark:bg-black/20 rounded-xl"
+        )}>
+            {/* Si c'est en plein écran, on rajoute un bouton fermer en haut à droite avec plus de padding */}
+            <button
+                onClick={toggleFullscreen}
+                className={cn(
+                    "absolute z-20 p-3 bg-white/90 dark:bg-black/80 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 hover:text-primary hover:bg-white dark:hover:bg-black transition-all shadow-xl hover:scale-105 active:scale-95",
+                    isExpanded ? "bottom-6 right-6" : "bottom-4 right-4"
+                )}
+                title={isExpanded ? "Fermer le mode plein écran" : "Agrandir le jumeau numérique"}
+            >
+                {isExpanded ? <Shrink className="w-6 h-6" /> : <Expand className="w-5 h-5" />}
+            </button>
 
             {/* UI Overlay: Filters & Controls */}
 
@@ -216,32 +283,59 @@ export function BuildingModel({ siteName = "Bâtiment Principal", zones = [], fo
             </div>
 
             {/* 3D Canvas */}
-            <Canvas camera={{ position: [8, 8, 8], fov: 45 }} className="flex-1 pointer-events-auto">
+            <Canvas camera={{ position: [8, 12, 12], fov: 45 }} className="flex-1 pointer-events-auto">
                 <ambientLight intensity={0.6} />
-                <pointLight position={[10, 15, 10]} intensity={1.5} color="#ffffff" castShadow />
-                <pointLight position={[-10, 10, -10]} intensity={0.5} color="#8b5cf6" />
+                <pointLight position={[10, 20, 10]} intensity={1.5} color="#ffffff" castShadow />
+                <pointLight position={[-10, 15, -10]} intensity={0.5} color="#8b5cf6" />
 
                 {/* Main Ground / Structure boundary */}
-                <Box args={[floorWidth, 0.1, floorDepth]} position={[0, -0.1, 0]}>
-                    <meshStandardMaterial color="#0f172a" opacity={0.8} transparent />
-                    <lineSegments>
-                        <edgesGeometry args={[new THREE.BoxGeometry(floorWidth, 0.1, floorDepth)]} />
-                        <lineBasicMaterial color="#334155" />
-                    </lineSegments>
-                </Box>
+                {selectedFloor === "Tous" ? (
+                    availableFloors.filter(f => f !== "Tous").map(f => {
+                        const yOffset = getFloorOffset(f);
+                        return (
+                            <Box key={f} args={[floorWidth, 0.1, floorDepth]} position={[0, yOffset - 0.1, 0]}>
+                                <meshStandardMaterial color="#0f172a" opacity={yOffset > 0 ? 0.3 : 0.8} transparent />
+                                <lineSegments>
+                                    <edgesGeometry args={[new THREE.BoxGeometry(floorWidth, 0.1, floorDepth)]} />
+                                    <lineBasicMaterial color="#334155" opacity={0.6} transparent />
+                                </lineSegments>
+                                {yOffset > 0 && (
+                                    <Html position={[-floorWidth / 2 + 0.5, 0.2, floorDepth / 2 - 0.5]} transform rotation={[-Math.PI / 2, 0, 0]}>
+                                        <div className="text-slate-500 font-extrabold text-2xl opacity-40 pointer-events-none select-none tracking-widest uppercase">
+                                            {f}
+                                        </div>
+                                    </Html>
+                                )}
+                            </Box>
+                        );
+                    })
+                ) : (
+                    <Box args={[floorWidth, 0.1, floorDepth]} position={[0, -0.1, 0]}>
+                        <meshStandardMaterial color="#0f172a" opacity={0.8} transparent />
+                        <lineSegments>
+                            <edgesGeometry args={[new THREE.BoxGeometry(floorWidth, 0.1, floorDepth)]} />
+                            <lineBasicMaterial color="#334155" />
+                        </lineSegments>
+                    </Box>
+                )}
 
                 {/* Zones rendering */}
                 <group position={[0, 0, 0]}>
-                    {currentFloorZones.map((z, idx) => (
-                        <Room
-                            key={z.id || idx}
-                            position={z.position || [(idx % 3) * 3 - 3, 0, Math.floor(idx / 3) * 3 - 1.5]}
-                            size={z.size || [2.5, 1.5, 2.5]}
-                            zone={z}
-                            activeLayer={activeLayer}
-                            forceMockData={forceMockData}
-                        />
-                    ))}
+                    {currentFloorZones.map((z, idx) => {
+                        const yOffset = selectedFloor === "Tous" ? getFloorOffset(z.floor || "RDC") : 0;
+                        const pos = z.position || [(idx % 3) * 3 - 3, 0, Math.floor(idx / 3) * 3 - 1.5];
+                        const stableKey = z.id || `zone-${z.name || 'unnamed'}-${idx}-${pos[0]}-${pos[1]}-${pos[2]}`;
+                        return (
+                            <Room
+                                key={stableKey}
+                                position={[pos[0], pos[1] + yOffset, pos[2]]}
+                                size={z.size || [2.5, 1.5, 2.5]}
+                                zone={z}
+                                activeLayer={activeLayer}
+                                forceMockData={forceMockData}
+                            />
+                        );
+                    })}
                 </group>
 
                 {/* Interactivity Controls */}
@@ -250,9 +344,10 @@ export function BuildingModel({ siteName = "Bâtiment Principal", zones = [], fo
                     minPolarAngle={0}
                     maxPolarAngle={Math.PI / 2.1} // Prevent looking completely from below
                     minDistance={5}
-                    maxDistance={25}
-                    autoRotate={true}
+                    maxDistance={45}
+                    autoRotate={selectedFloor === "Tous"}
                     autoRotateSpeed={0.5}
+                    target={[0, selectedFloor === "Tous" ? 4 : 0, 0]}
                 />
             </Canvas>
         </div>

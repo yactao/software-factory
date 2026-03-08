@@ -16,7 +16,7 @@ const custom_role_entity_1 = require("./custom-role.entity");
 var UserRole;
 (function (UserRole) {
     UserRole["SUPER_ADMIN"] = "SUPER_ADMIN";
-    UserRole["ENERGY_MANAGER"] = "ENERGY_MANAGER";
+    UserRole["ADMIN_FONCTIONNEL"] = "ADMIN_FONCTIONNEL";
     UserRole["CLIENT"] = "CLIENT";
 })(UserRole || (exports.UserRole = UserRole = {}));
 let User = class User {

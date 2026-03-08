@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, DeleteDateColumn } from 'typeorm';
 import { Site } from './site.entity';
 import { Sensor } from './sensor.entity';
 
@@ -21,4 +21,7 @@ export class Zone {
 
     @OneToMany(() => Sensor, (sensor) => sensor.zone)
     sensors: Sensor[];
+
+    @DeleteDateColumn()
+    deletedAt: Date;
 }

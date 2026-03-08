@@ -8,6 +8,7 @@ import { Alert } from './entities/alert.entity';
 import { Organization } from './entities/organization.entity';
 import { User } from './entities/user.entity';
 import { Gateway } from './entities/gateway.entity';
+import { CustomRole } from './entities/custom-role.entity';
 import { PayloadFormatterService } from './iot/payload-formatter.service';
 import { RulesEngineService } from './rules-engine.service';
 import { EventsGateway } from './iot/events.gateway';
@@ -19,11 +20,12 @@ export declare class AppService implements OnModuleInit {
     private alertRepo;
     private orgRepo;
     private userRepo;
+    private customRoleRepo;
     private gatewayRepo;
     private payloadFormatter;
     private rulesEngine;
     private eventsGateway;
-    constructor(siteRepo: Repository<Site>, zoneRepo: Repository<Zone>, sensorRepo: Repository<Sensor>, readingRepo: Repository<Reading>, alertRepo: Repository<Alert>, orgRepo: Repository<Organization>, userRepo: Repository<User>, gatewayRepo: Repository<Gateway>, payloadFormatter: PayloadFormatterService, rulesEngine: RulesEngineService, eventsGateway: EventsGateway);
+    constructor(siteRepo: Repository<Site>, zoneRepo: Repository<Zone>, sensorRepo: Repository<Sensor>, readingRepo: Repository<Reading>, alertRepo: Repository<Alert>, orgRepo: Repository<Organization>, userRepo: Repository<User>, customRoleRepo: Repository<CustomRole>, gatewayRepo: Repository<Gateway>, payloadFormatter: PayloadFormatterService, rulesEngine: RulesEngineService, eventsGateway: EventsGateway);
     checkHealth(): Promise<{
         status: string;
         timestamp: string;
@@ -86,7 +88,7 @@ export declare class AppService implements OnModuleInit {
         createdAt: Date;
         users: User[];
         sites: Site[];
-        customRoles: import("./entities/custom-role.entity").CustomRole[];
+        customRoles: CustomRole[];
     }[]>;
     private geocodeAddress;
     createOrganization(orgData: any): Promise<Organization[]>;
@@ -96,6 +98,8 @@ export declare class AppService implements OnModuleInit {
     updateSite(id: string, siteData: any): Promise<Site | null>;
     deleteSite(id: string): Promise<import("typeorm").DeleteResult>;
     createZone(zoneData: any, siteId: string): Promise<Zone[]>;
+    updateZone(id: string, zoneData: any): Promise<Zone | null>;
+    deleteZone(id: string): Promise<import("typeorm").DeleteResult>;
     getGateways(orgId?: string): Promise<Gateway[]>;
     createGateway(gatewayData: any): Promise<Gateway[]>;
     getSensors(orgId?: string): Promise<Sensor[]>;
@@ -127,6 +131,12 @@ export declare class AppService implements OnModuleInit {
     createUser(userData: any): Promise<User[]>;
     updateUser(id: string, userData: any): Promise<User | null>;
     deleteUser(id: string): Promise<{
+        success: boolean;
+    }>;
+    getCustomRoles(organizationId?: string): Promise<CustomRole[]>;
+    createCustomRole(roleData: any): Promise<CustomRole[]>;
+    updateCustomRole(id: string, roleData: any): Promise<CustomRole | null>;
+    deleteCustomRole(id: string): Promise<{
         success: boolean;
     }>;
     executeEquipmentAction(payload: {

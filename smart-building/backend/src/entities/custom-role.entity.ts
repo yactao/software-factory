@@ -10,6 +10,9 @@ export class CustomRole {
     @Column()
     name: string;
 
+    @Column({ nullable: true })
+    description: string;
+
     @Column('simple-json', { default: '[]' })
     permissions: string[]; // Exemple: ['view:dashboard', 'edit:equipments']
 

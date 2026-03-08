@@ -1,0 +1,2 @@
+﻿src/app/settings/components/modals/InviteUserModal.tsx(30,44): error TS7006: Parameter 'role' implicitly has an 'any' type.
+src/app/settings/components/types.ts(1,34): error TS2307: Cannot find module '../../useSettingsState' or its corresponding type declarations.

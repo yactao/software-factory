@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, ManyToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
 import { Zone } from './zone.entity';
 import { Organization } from './organization.entity';
 import { Gateway } from './gateway.entity';
@@ -44,4 +44,7 @@ export class Site {
 
     @OneToMany(() => Gateway, gateway => gateway.site)
     gateways: Gateway[];
+
+    @DeleteDateColumn()
+    deletedAt: Date;
 }

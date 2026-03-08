@@ -18,12 +18,17 @@ let RolesGuard = class RolesGuard {
             return true;
         const path = request.route.path;
         const method = request.method;
+        if ((path.includes('/api/users') || path.includes('/api/custom-roles')) && method !== 'GET') {
+            if (userRole !== 'SUPER_ADMIN') {
+                throw new common_1.ForbiddenException('Rôle insuffisant. Redirection rejetée.');
+            }
+        }
         if (userRole === 'CLIENT') {
             if (path.includes('/api/rules') && method !== 'GET') {
                 throw new common_1.ForbiddenException('Opération non autorisée pour votre profil Client.');
             }
             if (path.includes('/api/network')) {
-                throw new common_1.ForbiddenException('Le monitoring réseau est réservé aux Energy Managers.');
+                throw new common_1.ForbiddenException('Le monitoring réseau est réservé aux Administrateurs.');
             }
         }
         return true;

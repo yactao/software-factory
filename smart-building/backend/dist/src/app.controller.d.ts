@@ -74,6 +74,8 @@ export declare class AppController {
     updateSite(id: string, siteData: any): Promise<import("./entities/site.entity").Site | null>;
     deleteSite(id: string): Promise<import("typeorm").DeleteResult>;
     createZone(zoneData: any): Promise<import("./entities/zone.entity").Zone[]>;
+    updateZone(id: string, zoneData: any): Promise<import("./entities/zone.entity").Zone | null>;
+    deleteZone(id: string): Promise<import("typeorm").DeleteResult>;
     getSensors(orgId: string, role?: string): Promise<import("./entities/sensor.entity").Sensor[]>;
     getGateways(orgId: string, role?: string): Promise<import("./entities/gateway.entity").Gateway[]>;
     createGateway(gatewayData: any): Promise<import("./entities/gateway.entity").Gateway[]>;
@@ -119,6 +121,12 @@ export declare class AppController {
     createUser(userData: any): Promise<import("./entities/user.entity").User[]>;
     updateUser(id: string, userData: any): Promise<import("./entities/user.entity").User | null>;
     deleteUser(id: string): Promise<{
+        success: boolean;
+    }>;
+    getCustomRoles(orgId?: string): Promise<import("./entities/custom-role.entity").CustomRole[]>;
+    createCustomRole(roleData: any): Promise<import("./entities/custom-role.entity").CustomRole[]>;
+    updateCustomRole(id: string, roleData: any): Promise<import("./entities/custom-role.entity").CustomRole | null>;
+    deleteCustomRole(id: string): Promise<{
         success: boolean;
     }>;
     executeEquipmentAction(orgId: string, payload: {

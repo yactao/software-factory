@@ -278,7 +278,7 @@ L'heure actuelle locale est ${new Date().toISOString()}.`;
                 }
                 else if (toolName === 'set_device_state') {
                     // RBAC check: Does user have rights to modify?
-                    if (userRole !== 'SUPER_ADMIN' && userRole !== 'ENERGY_MANAGER') {
+                    if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN_FONCTIONNEL') {
                         toolResultObj = { status: 'error', reason: 'Permission Denied: Only Energy Managers or Admins can modify equipment state.' };
                     }
                     else {

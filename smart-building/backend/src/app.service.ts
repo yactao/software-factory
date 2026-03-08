@@ -9,6 +9,7 @@ import { Alert } from './entities/alert.entity';
 import { Organization } from './entities/organization.entity';
 import { User, UserRole } from './entities/user.entity';
 import { Gateway } from './entities/gateway.entity';
+import { CustomRole } from './entities/custom-role.entity';
 import { PayloadFormatterService } from './iot/payload-formatter.service';
 import { RulesEngineService } from './rules-engine.service';
 import { EventsGateway } from './iot/events.gateway';
@@ -30,6 +31,8 @@ export class AppService implements OnModuleInit {
     private orgRepo: Repository<Organization>,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    @InjectRepository(CustomRole)
+    private customRoleRepo: Repository<CustomRole>,
     @InjectRepository(Gateway)
     private gatewayRepo: Repository<Gateway>,
     private payloadFormatter: PayloadFormatterService,
@@ -87,7 +90,7 @@ export class AppService implements OnModuleInit {
 
       // 2. Create Default Users
       const adminUser = this.userRepo.create({ name: 'Super Admin', email: 'admin@ubbee.fr', password: 'admin', role: UserRole.SUPER_ADMIN, organization: orgUbbee });
-      const managerUser = this.userRepo.create({ name: 'Energy Manager', email: 'manager@ubbee.fr', password: 'password', role: UserRole.ENERGY_MANAGER, organization: orgUbbee });
+      const managerUser = this.userRepo.create({ name: 'Energy Manager', email: 'manager@ubbee.fr', password: 'password', role: UserRole.ADMIN_FONCTIONNEL, organization: orgUbbee });
       const ubbeeClient = this.userRepo.create({ name: 'Client Ubbee', email: 'client@ubbee.fr', password: 'password', role: UserRole.CLIENT, organization: orgUbbee });
       const casaClient = this.userRepo.create({ name: 'Responsable Casa', email: 'client@casa.fr', password: 'password', role: UserRole.CLIENT, organization: orgCasa });
       await this.userRepo.save([adminUser, managerUser, ubbeeClient, casaClient]);
@@ -343,6 +346,15 @@ export class AppService implements OnModuleInit {
     return this.zoneRepo.save(newZone);
   }
 
+  async updateZone(id: string, zoneData: any) {
+    await this.zoneRepo.update(id, zoneData);
+    return this.zoneRepo.findOne({ where: { id } });
+  }
+
+  async deleteZone(id: string) {
+    return this.zoneRepo.delete(id);
+  }
+
   async getGateways(orgId?: string) {
     const where = orgId ? { site: { organizationId: orgId } } : {};
     return this.gatewayRepo.find({ where, relations: ['site', 'sensors'] });
@@ -553,7 +565,7 @@ export class AppService implements OnModuleInit {
 
     const searchStr = `%${query}%`;
     const results: any[] = [];
-    const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ENERGY_MANAGER');
+    const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ADMIN_FONCTIONNEL');
 
     // 1. Search Sites
     const sitesQuery = this.siteRepo.createQueryBuilder('site')
@@ -617,7 +629,7 @@ export class AppService implements OnModuleInit {
     }));
 
     // 5. Search Organizations (Admins only)
-    if (role === 'SUPER_ADMIN' || role === 'ENERGY_MANAGER') {
+    if (role === 'SUPER_ADMIN' || role === 'ADMIN_FONCTIONNEL') {
       const orgs = await this.orgRepo.createQueryBuilder('org')
         .where('org.name LIKE :search', { search: searchStr })
         .take(3)
@@ -675,6 +687,32 @@ export class AppService implements OnModuleInit {
     await this.userRepo.delete(id);
     return { success: true };
   }
+
+  async getCustomRoles(organizationId?: string) {
+    if (organizationId) {
+      return this.customRoleRepo.find({ where: { organization: { id: organizationId } } });
+    }
+    return this.customRoleRepo.find({ relations: ['organization'] });
+  }
+
+  async createCustomRole(roleData: any) {
+    let org = null;
+    if (roleData.organizationId) {
+      org = await this.orgRepo.findOne({ where: { id: roleData.organizationId } });
+    }
+    const role = this.customRoleRepo.create({ ...roleData, organization: org });
+    return this.customRoleRepo.save(role);
+  }
+
+  async updateCustomRole(id: string, roleData: any) {
+    await this.customRoleRepo.update(id, roleData);
+    return this.customRoleRepo.findOne({ where: { id } });
+  }
+
+  async deleteCustomRole(id: string) {
+    await this.customRoleRepo.delete(id);
+    return { success: true };
+  }
   async executeEquipmentAction(payload: { equipmentId: string; action: string; value?: any }) {
     // In a real scenario, this would lookup the equipment by ID and publish an MQTT payload
     // to the actual physical device. For this demo, we'll just log and mock success.
@@ -690,7 +728,7 @@ export class AppService implements OnModuleInit {
   }
 
   async getDashboardKpis(orgId: string, role: string) {
-    const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ENERGY_MANAGER');
+    const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111' && (role === 'SUPER_ADMIN' || role === 'ADMIN_FONCTIONNEL');
 
     const totalClients = isGlobalContext ? await this.orgRepo.count() : 1;
 

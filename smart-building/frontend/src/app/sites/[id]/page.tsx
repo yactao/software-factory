@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
-import { Building2, Layers, ThermometerSun, Wind, Users, Activity, ChevronsUpDown, Cpu, Search, CheckCircle2, ChevronDown, ChevronRight, Building, MapPin, LayoutGrid, Thermometer, Plus, X, Zap, ArrowLeft, Sun, CloudRain, AlertTriangle, ShieldCheck, Filter, RefreshCw, Power, Lightbulb, Video, Router, Server, Trash2 } from "lucide-react";
+import { Building2, Layers, ThermometerSun, Wind, Users, Activity, ChevronsUpDown, Cpu, Search, CheckCircle2, ChevronDown, ChevronRight, Building, MapPin, LayoutGrid, Thermometer, Plus, X, Zap, ArrowLeft, Sun, CloudRain, AlertTriangle, ShieldCheck, Filter, RefreshCw, Power, Lightbulb, Video, Router, Server, Trash2, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTenant } from "@/lib/TenantContext";
 import { EnergyChart } from "@/components/dashboard/EnergyChart";
@@ -85,14 +85,18 @@ export default function SiteDashboardPage() {
 
     // Modales states
     const [isAddZoneOpen, setIsAddZoneOpen] = useState(false);
+    const [isEditZoneOpen, setIsEditZoneOpen] = useState(false);
+    const [editingZone, setEditingZone] = useState<Zone | null>(null);
     const [newZone, setNewZone] = useState({ name: "", type: "Office", floor: "RDC" });
     const isAdmin = currentTenant?.role === "ENERGY_MANAGER" || currentTenant?.role === "SUPER_ADMIN";
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
     const fetchSiteDetails = async (isSilentRefresh = false) => {
         if (!isSilentRefresh) setLoading(true);
         try {
             // Fetch all sites for now and find. Ideally GET /api/sites/:id
-            const res = await authFetch("http://localhost:3001/api/sites");
+            const res = await authFetch(`${API_URL}/api/sites`);
             if (res.ok) {
                 const data = await res.json();
                 const found = data.find((s: Record<string, unknown>) => s.id === siteId);
@@ -112,7 +116,7 @@ export default function SiteDashboardPage() {
 
     const handleEquipmentAction = async (equipmentId: string, actionName: string, value?: string | number | boolean) => {
         try {
-            const res = await authFetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/equipment/action`, {
+            const res = await authFetch(`${API_URL}/api/equipment/action`, {
                 method: "POST",
                 body: JSON.stringify({ equipmentId, action: actionName, value })
             });
@@ -151,8 +155,9 @@ export default function SiteDashboardPage() {
     const handleCreateZone = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await authFetch("http://localhost:3001/api/zones", {
+            const res = await authFetch(`${API_URL}/api/zones`, {
                 method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...newZone, siteId: siteId })
             });
             if (res.ok) {
@@ -170,7 +175,7 @@ export default function SiteDashboardPage() {
         e.stopPropagation();
         if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette zone ?")) return;
         try {
-            const res = await authFetch(`http://localhost:3001/api/zones/${zoneId}`, {
+            const res = await authFetch(`${API_URL}/api/zones/${zoneId}`, {
                 method: "DELETE",
             });
             if (res.ok) {
@@ -178,6 +183,29 @@ export default function SiteDashboardPage() {
             }
         } catch (error) {
             console.error("Failed to delete zone", error);
+        }
+    };
+
+    const handleUpdateZone = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingZone) return;
+        try {
+            const { name, type, floor } = editingZone;
+            const res = await authFetch(`${API_URL}/api/zones/${editingZone.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, type, floor })
+            });
+            if (res.ok) {
+                setIsEditZoneOpen(false);
+                setEditingZone(null);
+                await fetchSiteDetails();
+            } else {
+                console.error("Failed to update zone:", await res.text());
+                alert("Erreur lors de la modification de la zone");
+            }
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -232,15 +260,6 @@ export default function SiteDashboardPage() {
                 </div>
 
                 <div className="flex gap-4">
-                    {/* Bouton CVC DYNAMIC */}
-                    <button
-                        onClick={() => setIsHvacModalOpen(true)}
-                        className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl shadow-lg border border-blue-400/50 transition-all active:scale-95 group"
-                    >
-                        <ThermometerSun className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                        <span className="font-bold text-sm">Gestion Climatisation (CVC)</span>
-                    </button>
-
                     {/* Health Score Site */}
                     <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
                         <ShieldCheck className="h-6 w-6 text-emerald-500" />
@@ -264,7 +283,7 @@ export default function SiteDashboardPage() {
                     onClick={() => setActiveTab('equipments')}
                     className={`px-5 py-2.5 text-sm font-bold rounded-xl transition-all flex items-center ${activeTab === 'equipments' ? 'bg-primary text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                 >
-                    <Power className="w-4 h-4 mr-2" /> Actionneurs & Pilotage
+                    <Power className="w-4 h-4 mr-2" /> Équipements & Pilotage
                 </button>
             </div>
 
@@ -395,9 +414,14 @@ export default function SiteDashboardPage() {
                                                                 <span className="text-[10px] text-slate-500 uppercase tracking-widest">{zone.type}</span>
                                                             </div>
                                                             {isAdmin && (
-                                                                <button onClick={(e) => handleDeleteZone(zone.id, e)} className="p-1 hover:bg-rose-500/10 hover:text-rose-500 text-slate-400 rounded transition-colors opacity-0 group-hover:opacity-100" title="Supprimer la zone">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
+                                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={(e) => { e.stopPropagation(); setEditingZone(zone); setIsEditZoneOpen(true); }} className="p-1 hover:bg-blue-500/10 hover:text-blue-500 text-slate-400 rounded transition-colors" title="Modifier la zone">
+                                                                        <Edit2 className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button onClick={(e) => handleDeleteZone(zone.id, e)} className="p-1 hover:bg-rose-500/10 hover:text-rose-500 text-slate-400 rounded transition-colors" title="Supprimer la zone">
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </div>
 
@@ -444,136 +468,153 @@ export default function SiteDashboardPage() {
 
             {activeTab === 'equipments' && (
                 <div className="space-y-6 mt-6">
-                    <div className="glass-card rounded-2xl p-6 border-slate-200 dark:border-white/5">
-                        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-white/5">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center">
-                                    <Power className="h-5 w-5 mr-2 text-primary" />
-                                    Interface de Pilotage
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-1">Gérez et pilotez à distance l&apos;ensemble des équipements et actionneurs de vos zones.</p>
+                    {/* Gateway wrapper */}
+                    <div className="bg-white dark:bg-[#0B1120] rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm">
+
+                        {/* Gateway Header */}
+                        <div className="p-5 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between md:items-center gap-4 bg-slate-50/50 dark:bg-white/5">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center border border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                    <Server className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        Passerelle Ubot - {site.name}
+                                    </h3>
+                                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-medium">
+                                        <span className="px-2 py-0.5 bg-slate-200/50 dark:bg-white/10 rounded font-mono tracking-wider">UBOT-DEMO-8604</span>
+                                        <span className="flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> {site.name}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-widest rounded-full border border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> ONLINE
+                                </span>
+                                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                                    <ChevronDown className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {hasEquipments ? (
-                                <>
-                                    {/* CVC Control */}
-                                    <div className="p-5 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <div className="flex items-center">
-                                                <div className={`p-2 rounded-lg mr-3 ${hvacState ? 'bg-orange-500/10 text-orange-500' : 'bg-white dark:bg-white/5 text-slate-400'}`}>
-                                                    <ThermometerSun className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">Climatisation (CVC)</h4>
-                                                    <span className={`text-[10px] font-bold uppercase ${hvacState ? 'text-emerald-500' : 'text-slate-500'}`}>{hvacState ? 'Allumé' : 'Éteint'}</span>
-                                                </div>
-                                            </div>
-                                            {/* Toggle UI */}
-                                            <button
-                                                onClick={() => {
-                                                    const newState = !hvacState;
-                                                    setHvacState(newState);
-                                                    handleEquipmentAction("cvc-global", "toggle_hvac", newState);
-                                                }}
-                                                className={`w-12 h-6 rounded-full relative transition-colors ${hvacState ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'}`}
-                                            >
-                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${hvacState ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                        </div>
-                                        {hvacState && (
-                                            <div className="pt-4 border-t border-slate-200 dark:border-white/5">
-                                                <label className="text-xs font-bold text-slate-500 mb-2 block">Consigne Actuelle (Globale)</label>
-                                                <div className="flex justify-between items-center bg-white dark:bg-white/5 p-2 rounded-lg border border-slate-200 dark:border-white/5">
-                                                    <button
-                                                        onClick={() => {
-                                                            const newT = Math.max(16, hvacTemp - 0.5);
-                                                            setHvacTemp(newT);
-                                                            handleEquipmentAction("cvc-global", "set_temp", newT);
-                                                        }}
-                                                        className="h-8 w-8 rounded flex items-center justify-center text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors"
-                                                    >
-                                                        -
-                                                    </button>
-                                                    <span className="text-lg font-bold text-slate-900 dark:text-white">{hvacTemp.toFixed(1)}°C</span>
-                                                    <button
-                                                        onClick={() => {
-                                                            const newT = Math.min(30, hvacTemp + 0.5);
-                                                            setHvacTemp(newT);
-                                                            handleEquipmentAction("cvc-global", "set_temp", newT);
-                                                        }}
-                                                        className="h-8 w-8 rounded flex items-center justify-center text-slate-500 hover:text-primary hover:bg-primary/10 transition-colors"
-                                                    >
-                                                        +
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                        {/* Cards Grid */}
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/30 dark:bg-transparent">
 
-                                    {/* Lights Control */}
-                                    <div className="p-5 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <div className="flex items-center">
-                                                <div className={`p-2 rounded-lg mr-3 ${lightsState ? 'bg-yellow-400/10 text-yellow-500' : 'bg-white dark:bg-white/5 text-slate-400'}`}>
-                                                    <Lightbulb className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">Éclairage</h4>
-                                                    <span className={`text-[10px] font-bold uppercase ${lightsState ? 'text-yellow-500' : 'text-slate-500'}`}>{lightsState ? 'Allumé (100%)' : 'Éteint'}</span>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    const newState = !lightsState;
-                                                    setLightsState(newState);
-                                                    handleEquipmentAction("lights-global", "toggle_lights", newState);
-                                                }}
-                                                className={`w-12 h-6 rounded-full relative transition-colors ${lightsState ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'}`}
-                                            >
-                                                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${lightsState ? 'left-7' : 'left-1'}`} />
-                                            </button>
+                            {/* Card 1: Aidoo Pro */}
+                            <div className="bg-white dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-sm flex flex-col justify-between hover:border-blue-300 transition-colors">
+                                <div>
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-100 dark:border-blue-500/20 shrink-0">
+                                            <ThermometerSun className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white text-base">Aidoo Pro (Contrôleur AC)</h4>
+                                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                                <Layers className="w-3.5 h-3.5" /> Espace principal
+                                            </p>
                                         </div>
                                     </div>
-
-                                    {/* Camera Stream Placeholder */}
-                                    <div className="p-5 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20">
-                                        <div className="flex items-center mb-4">
-                                            <div className="p-2 rounded-lg mr-3 bg-red-500/10 text-red-500">
-                                                <Video className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Caméra Thermique</h4>
-                                                <span className="text-[10px] font-bold uppercase text-red-500 flex items-center">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1 animate-pulse" /> Live
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="w-full aspect-video bg-black rounded-lg overflow-hidden relative group border border-slate-800">
-                                            <video
-                                                src="https://cdn.pixabay.com/video/2019/04/10/22818-331295328_large.mp4"
-                                                autoPlay
-                                                loop
-                                                muted
-                                                playsInline
-                                                className="opacity-70 group-hover:opacity-100 transition-opacity w-full h-full object-cover filter sepia hue-rotate-[180deg] saturate-200 contrast-125"
-                                            />
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
-                                                <p className="text-[9px] text-white/70 font-mono tracking-widest flex justify-between">
-                                                    <span>HALL — CAM 01</span>
-                                                    <span className="text-red-500 animate-pulse">REC</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 text-slate-500 flex flex-col items-center">
-                                    <Power className="h-10 w-10 mb-3 opacity-20" />
-                                    <p className="text-sm">Aucun équipement ou système pilotable dans ce bâtiment.</p>
+                                    <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 text-[10px] font-bold border border-blue-200 dark:border-blue-500/20 rounded mb-4">
+                                        CVC Pilote
+                                    </span>
                                 </div>
-                            )}
+                                <div className="mt-auto">
+                                    <button
+                                        onClick={() => setIsHvacModalOpen(true)}
+                                        className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 mb-4 shadow-sm active:scale-95"
+                                    >
+                                        <Router className="w-4 h-4" /> Contrôler CVC
+                                    </button>
+                                    <div className="flex items-center justify-between text-[10px] font-medium text-slate-400 font-mono pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <span className="bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">ID: m-s0..</span>
+                                        <span className="flex items-center gap-1 text-emerald-500"><Activity className="w-3 h-3" /> à l'instant</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card 2: Bascule Ete/Hiver */}
+                            <div className="bg-white dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-sm flex flex-col justify-between hover:border-amber-300 transition-colors">
+                                <div>
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-100 dark:border-amber-500/20 shrink-0">
+                                            <Power className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white text-base">Bascule Ete/Hiver</h4>
+                                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                                <Layers className="w-3.5 h-3.5" /> Espace principal
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-bold border border-slate-200 dark:border-slate-700 rounded mb-4">
+                                        Inactif
+                                    </span>
+                                </div>
+                                <div className="mt-auto">
+                                    <div className="flex items-center justify-between text-[10px] font-medium text-slate-400 font-mono pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <span className="bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">ID: m-s1..</span>
+                                        <span className="flex items-center gap-1 text-emerald-500"><Activity className="w-3 h-3" /> à l'instant</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card 3: Sonde T° */}
+                            <div className="bg-white dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-sm flex flex-col justify-between hover:border-orange-300 transition-colors">
+                                <div>
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <div className="w-10 h-10 rounded-full bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-100 dark:border-orange-500/20 shrink-0">
+                                            <ThermometerSun className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white text-base">Sonde T° - TEXTO1</h4>
+                                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                                <Layers className="w-3.5 h-3.5" /> Extérieur
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <span className="inline-block px-2.5 py-1 bg-white dark:bg-transparent text-orange-600 dark:text-orange-400 text-xs font-bold border border-orange-200 dark:border-orange-500/30 rounded">
+                                            18.6 °C
+                                        </span>
+                                        <span className="inline-block px-2.5 py-1 bg-white dark:bg-transparent text-blue-600 dark:text-blue-400 text-xs font-bold border border-blue-200 dark:border-blue-500/30 rounded">
+                                            47.4 %
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="mt-auto">
+                                    <div className="flex items-center justify-between text-[10px] font-medium text-slate-400 font-mono pt-4 border-t border-slate-100 dark:border-white/5 mt-4">
+                                        <span className="bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">ID: m-s2..</span>
+                                        <span className="flex items-center gap-1 text-emerald-500"><Activity className="w-3 h-3" /> il y a 1 minute</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card 4: Détecteur présence */}
+                            <div className="bg-white dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-sm flex flex-col justify-between hover:border-cyan-300 transition-colors">
+                                <div>
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <div className="w-10 h-10 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-100 dark:border-cyan-500/20 shrink-0">
+                                            <Activity className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-white text-base">Détecteur de présence</h4>
+                                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                                <Layers className="w-3.5 h-3.5" /> Local Social 1
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="inline-block px-2.5 py-1 bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400 text-[10px] font-bold border border-cyan-200 dark:border-cyan-500/30 rounded">
+                                        Mouvement détecté
+                                    </span>
+                                </div>
+                                <div className="mt-auto">
+                                    <div className="flex items-center justify-between text-[10px] font-medium text-slate-400 font-mono pt-4 border-t border-slate-100 dark:border-white/5 mt-4">
+                                        <span className="bg-slate-100 dark:bg-white/5 px-2 py-1 rounded">ID: m-s3..</span>
+                                        <span className="flex items-center gap-1 text-emerald-500"><Activity className="w-3 h-3" /> il y a 2 minutes</span>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -802,6 +843,32 @@ export default function SiteDashboardPage() {
                                 </div>
 
                                 <button type="submit" className="w-full py-3 mt-6 bg-primary hover:bg-emerald-400 text-white font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.4)]">Créer la Zone</button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+            {/* Modal: Edit Zone */}
+            {
+                isEditZoneOpen && editingZone && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                        <div className="w-full max-w-md bg-white dark:bg-[#0B1120] rounded-2xl border border-slate-200 dark:border-white/10 p-6 shadow-2xl relative">
+                            <button onClick={() => { setIsEditZoneOpen(false); setEditingZone(null); }} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white"><X className="h-5 w-5" /></button>
+                            <h2 className="text-xl font-bold mb-6 text-slate-900 dark:text-white flex items-center"><Edit2 className="w-5 h-5 mr-2 text-blue-500" /> Modifier la Zone</h2>
+                            <form onSubmit={handleUpdateZone} className="space-y-4">
+                                <div><label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nom de la Zone</label>
+                                    <input type="text" required value={editingZone.name} onChange={e => setEditingZone({ ...editingZone, name: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" /></div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className="text-sm font-bold text-slate-700 dark:text-slate-300">Type de Pièce</label>
+                                        <select value={editingZone.type} onChange={e => setEditingZone({ ...editingZone, type: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:border-blue-500 outline-none transition-all">
+                                            <option value="Office">Bureau</option><option value="Meeting Room">Salle de Réunion</option><option value="Hall">Hall / Accueil</option><option value="Storage">Stockage</option><option value="Retail">Espace de Vente</option>
+                                        </select></div>
+                                    <div><label className="text-sm font-bold text-slate-700 dark:text-slate-300">Étage (Niveau)</label>
+                                        <input type="text" required value={editingZone.floor} onChange={e => setEditingZone({ ...editingZone, floor: e.target.value })} className="w-full p-2.5 mt-1 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white focus:border-blue-500 outline-none transition-all" /></div>
+                                </div>
+
+                                <button type="submit" className="w-full py-3 mt-6 bg-blue-500 hover:bg-blue-400 text-white font-bold rounded-xl transition-all shadow-md">Mettre à jour la Zone</button>
                             </form>
                         </div>
                     </div>

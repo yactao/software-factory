@@ -17,6 +17,12 @@ const common_1 = require("@nestjs/common");
 const app_service_1 = require("./app.service");
 const rules_engine_service_1 = require("./rules-engine.service");
 const jwt_auth_guard_1 = require("./auth/jwt-auth.guard");
+const roles_guard_1 = require("./auth/roles.guard");
+const zod_validation_pipe_1 = require("./pipes/zod-validation.pipe");
+const invite_user_schema_1 = require("./dto/invite-user.schema");
+const webhook_schema_1 = require("./dto/webhook.schema");
+const custom_role_schema_1 = require("./dto/custom-role.schema");
+const common_2 = require("@nestjs/common");
 let AppController = class AppController {
     appService;
     rulesEngineService;
@@ -62,6 +68,12 @@ let AppController = class AppController {
             throw new Error("siteId is required to create a zone");
         }
         return this.appService.createZone(zoneData, zoneData.siteId);
+    }
+    updateZone(id, zoneData) {
+        return this.appService.updateZone(id, zoneData);
+    }
+    deleteZone(id) {
+        return this.appService.deleteZone(id);
     }
     getSensors(orgId, role) {
         const isGlobalContext = orgId === '11111111-1111-1111-1111-111111111111';
@@ -122,6 +134,18 @@ let AppController = class AppController {
     }
     deleteUser(id) {
         return this.appService.deleteUser(id);
+    }
+    getCustomRoles(orgId) {
+        return this.appService.getCustomRoles(orgId);
+    }
+    createCustomRole(roleData) {
+        return this.appService.createCustomRole(roleData);
+    }
+    updateCustomRole(id, roleData) {
+        return this.appService.updateCustomRole(id, roleData);
+    }
+    deleteCustomRole(id) {
+        return this.appService.deleteCustomRole(id);
     }
     executeEquipmentAction(orgId, payload) {
         return this.appService.executeEquipmentAction(payload);
@@ -217,6 +241,23 @@ __decorate([
 ], AppController.prototype, "createZone", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Put)('zones/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "updateZone", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Delete)('zones/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "deleteZone", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('sensors'),
     __param(0, (0, common_1.Headers)('x-organization-id')),
     __param(1, (0, common_1.Headers)('x-user-role')),
@@ -308,6 +349,7 @@ __decorate([
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('iot/webhook'),
+    (0, common_2.UsePipes)(new zod_validation_pipe_1.ZodValidationPipe(webhook_schema_1.IotWebhookSchema)),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -341,8 +383,9 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AppController.prototype, "getUsers", null);
 __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, common_1.Post)('users'),
+    (0, common_2.UsePipes)(new zod_validation_pipe_1.ZodValidationPipe(invite_user_schema_1.InviteUserSchema)),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -365,6 +408,41 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AppController.prototype, "deleteUser", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('custom-roles'),
+    __param(0, (0, common_1.Query)('organizationId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "getCustomRoles", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, common_1.Post)('custom-roles'),
+    (0, common_2.UsePipes)(new zod_validation_pipe_1.ZodValidationPipe(custom_role_schema_1.CustomRoleSchema)),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "createCustomRole", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, common_1.Put)('custom-roles/:id'),
+    (0, common_2.UsePipes)(new zod_validation_pipe_1.ZodValidationPipe(custom_role_schema_1.CustomRoleSchema)),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "updateCustomRole", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, common_1.Delete)('custom-roles/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AppController.prototype, "deleteCustomRole", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('equipment/action'),
