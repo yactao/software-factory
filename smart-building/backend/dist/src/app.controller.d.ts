@@ -39,6 +39,7 @@ export declare class AppController {
         organization: import("./entities/organization.entity").Organization;
         organizationId: string;
         gateways: import("./entities/gateway.entity").Gateway[];
+        deletedAt: Date;
     }[]>;
     getOrganizations(): Promise<{
         sitesCount: number;

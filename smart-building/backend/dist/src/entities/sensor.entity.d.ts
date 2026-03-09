@@ -10,4 +10,5 @@ export declare class Sensor {
     zone: Zone;
     readings: Reading[];
     gateway: Gateway;
+    deletedAt: Date;
 }

@@ -23,6 +23,7 @@ let Sensor = class Sensor {
     zone;
     readings;
     gateway;
+    deletedAt;
 };
 exports.Sensor = Sensor;
 __decorate([
@@ -57,6 +58,10 @@ __decorate([
     (0, typeorm_1.ManyToOne)(() => gateway_entity_1.Gateway, gateway => gateway.sensors, { nullable: true }),
     __metadata("design:type", gateway_entity_1.Gateway)
 ], Sensor.prototype, "gateway", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)(),
+    __metadata("design:type", Date)
+], Sensor.prototype, "deletedAt", void 0);
 exports.Sensor = Sensor = __decorate([
     (0, typeorm_1.Entity)()
 ], Sensor);

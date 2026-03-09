@@ -23,6 +23,7 @@ const custom_role_entity_1 = require("./entities/custom-role.entity");
 const gateway_entity_1 = require("./entities/gateway.entity");
 const device_template_entity_1 = require("./entities/device-template.entity");
 const payload_mapping_entity_1 = require("./entities/payload-mapping.entity");
+const audit_log_entity_1 = require("./entities/audit-log.entity");
 const simulation_service_1 = require("./simulation.service");
 const rules_engine_service_1 = require("./rules-engine.service");
 const notifications_module_1 = require("./notifications/notifications.module");
@@ -34,6 +35,7 @@ const integrations_controller_1 = require("./integrations.controller");
 const universal_mqtt_listener_service_1 = require("./iot/universal-mqtt-listener.service");
 const copilot_module_1 = require("./copilot/copilot.module");
 const mqtt_service_1 = require("./mqtt.service");
+const logs_module_1 = require("./logs/logs.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -43,15 +45,16 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'better-sqlite3',
                 database: 'smartbuild_v3.sqlite',
-                entities: [site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, custom_role_entity_1.CustomRole, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping],
+                entities: [site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, custom_role_entity_1.CustomRole, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping, audit_log_entity_1.AuditLog],
                 synchronize: true,
                 logging: false,
             }),
-            typeorm_1.TypeOrmModule.forFeature([site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, custom_role_entity_1.CustomRole, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping]),
+            typeorm_1.TypeOrmModule.forFeature([site_entity_1.Site, zone_entity_1.Zone, sensor_entity_1.Sensor, reading_entity_1.Reading, alert_entity_1.Alert, rule_entity_1.Rule, organization_entity_1.Organization, user_entity_1.User, custom_role_entity_1.CustomRole, gateway_entity_1.Gateway, device_template_entity_1.DeviceTemplate, payload_mapping_entity_1.PayloadMapping, audit_log_entity_1.AuditLog]),
             notifications_module_1.NotificationsModule,
             ai_module_1.AiModule,
             auth_module_1.AuthModule,
             copilot_module_1.CopilotModule,
+            logs_module_1.LogsModule,
         ],
         controllers: [app_controller_1.AppController, integrations_controller_1.IntegrationsController],
         providers: [app_service_1.AppService, simulation_service_1.SimulationService, rules_engine_service_1.RulesEngineService, payload_formatter_service_1.PayloadFormatterService, events_gateway_1.EventsGateway, universal_mqtt_listener_service_1.UniversalMqttListenerService, mqtt_service_1.MqttService],

@@ -37,6 +37,7 @@ __decorate([
     __metadata("design:type", sensor_entity_1.Sensor)
 ], Reading.prototype, "sensor", void 0);
 exports.Reading = Reading = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)(),
+    (0, typeorm_1.Index)(['sensor', 'timestamp'])
 ], Reading);
 //# sourceMappingURL=reading.entity.js.map

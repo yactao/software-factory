@@ -23,6 +23,7 @@ let Gateway = class Gateway {
     createdAt;
     site;
     sensors;
+    deletedAt;
 };
 exports.Gateway = Gateway;
 __decorate([
@@ -61,6 +62,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => sensor_entity_1.Sensor, sensor => sensor.gateway),
     __metadata("design:type", Array)
 ], Gateway.prototype, "sensors", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)(),
+    __metadata("design:type", Date)
+], Gateway.prototype, "deletedAt", void 0);
 exports.Gateway = Gateway = __decorate([
     (0, typeorm_1.Entity)()
 ], Gateway);

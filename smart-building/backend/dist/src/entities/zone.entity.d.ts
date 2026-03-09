@@ -7,4 +7,5 @@ export declare class Zone {
     floor: string;
     site: Site;
     sensors: Sensor[];
+    deletedAt: Date;
 }

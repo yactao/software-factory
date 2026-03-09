@@ -62,6 +62,7 @@ export declare class AppService implements OnModuleInit {
         organization: Organization;
         organizationId: string;
         gateways: Gateway[];
+        deletedAt: Date;
     }[]>;
     getOrganizations(): Promise<{
         sitesCount: number;

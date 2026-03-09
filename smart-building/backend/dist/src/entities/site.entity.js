@@ -28,6 +28,7 @@ let Site = class Site {
     organization;
     organizationId;
     gateways;
+    deletedAt;
 };
 exports.Site = Site;
 __decorate([
@@ -83,6 +84,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => gateway_entity_1.Gateway, gateway => gateway.site),
     __metadata("design:type", Array)
 ], Site.prototype, "gateways", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)(),
+    __metadata("design:type", Date)
+], Site.prototype, "deletedAt", void 0);
 exports.Site = Site = __decorate([
     (0, typeorm_1.Entity)()
 ], Site);

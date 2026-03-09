@@ -10,4 +10,5 @@ export declare class Gateway {
     createdAt: Date;
     site: Site;
     sensors: Sensor[];
+    deletedAt: Date;
 }

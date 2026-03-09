@@ -10,16 +10,20 @@ export class LogsController {
 
     @Get('audit')
     async getAuditLogs(@Query('orgId') orgId?: string, @Query('limit') limit?: number) {
-        return this.logsService.getAuditLogs(orgId, limit);
+        // SECURITY FIX: Enforce a hard cap on the limit of returned rows
+        const parsedLimit = isNaN(Number(limit)) ? 200 : Math.min(Number(limit), 2000);
+        return this.logsService.getAuditLogs(orgId, parsedLimit);
     }
 
     @Get('system')
     async getSystemLogs(@Query('lines') lines?: number) {
-        return this.logsService.getSystemLogs(lines || 500);
+        const parsedLines = isNaN(Number(lines)) ? 500 : Math.min(Number(lines), 1000);
+        return this.logsService.getSystemLogs(parsedLines);
     }
 
     @Get('iot')
     async getIotLogs(@Query('lines') lines?: number) {
-        return this.logsService.getIotLogs(lines || 500);
+        const parsedLines = isNaN(Number(lines)) ? 500 : Math.min(Number(lines), 1000);
+        return this.logsService.getIotLogs(parsedLines);
     }
 }

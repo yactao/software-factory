@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Terminal, Shield, Cpu, Activity, RefreshCw } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 export function ConsoleTab() {
     const [activeChannel, setActiveChannel] = useState<'audit' | 'system' | 'iot'>('system');
@@ -10,7 +11,7 @@ export function ConsoleTab() {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('hubbee_token');
+            const token = localStorage.getItem('smartbuild_token');
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/logs/${activeChannel}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -46,9 +47,9 @@ export function ConsoleTab() {
             return (
                 <div key={index} className="flex gap-4 text-sm font-mono border-b border-emerald-900/30 py-2">
                     <span className="text-emerald-500 whitespace-nowrap">[{new Date(log.timestamp).toLocaleString()}]</span>
-                    <span className="text-cyan-400 w-48 truncate">[{log.user?.email || 'System'}]</span>
-                    <span className="text-yellow-400 font-bold w-32">{log.action}</span>
-                    <span className="text-slate-300 flex-1">{log.resource}</span>
+                    <span className="text-cyan-400 w-48 truncate">[{DOMPurify.sanitize(log.user?.email || 'System')}]</span>
+                    <span className="text-yellow-400 font-bold w-32">{DOMPurify.sanitize(log.action)}</span>
+                    <span className="text-slate-300 flex-1">{DOMPurify.sanitize(log.resource)}</span>
                 </div>
             );
         }
@@ -58,11 +59,14 @@ export function ConsoleTab() {
         const levelStr = log.level ? log.level.toUpperCase() : 'INFO';
         const levelColor = levelStr === 'ERROR' ? 'text-rose-500' : (levelStr === 'WARN' ? 'text-amber-500' : 'text-blue-400');
 
+        const rawMessage = log.message || JSON.stringify(log);
+        const sanitizedMessage = typeof window !== 'undefined' ? DOMPurify.sanitize(rawMessage) : rawMessage;
+
         return (
             <div key={index} className="flex gap-4 text-sm font-mono border-b border-slate-800/50 py-1 hover:bg-white/[0.02]">
                 <span className="text-slate-500 whitespace-nowrap">[{time}]</span>
-                <span className={`${levelColor} font-bold w-16`}>{levelStr}</span>
-                <span className="text-slate-300 break-words flex-1">{log.message || JSON.stringify(log)}</span>
+                <span className={`${levelColor} font-bold w-16`}>{DOMPurify.sanitize(levelStr)}</span>
+                <span className="text-slate-300 break-words flex-1" dangerouslySetInnerHTML={{ __html: sanitizedMessage }} />
             </div>
         );
     };
@@ -89,8 +93,8 @@ export function ConsoleTab() {
                 <button
                     onClick={() => setActiveChannel('audit')}
                     className={`px-4 py-2 rounded-lg flex items-center text-sm font-bold transition-all ${activeChannel === 'audit'
-                            ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white border border-slate-200 dark:border-white/10'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white border border-slate-200 dark:border-white/10'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                 >
                     <Shield className="w-4 h-4 mr-2" /> Historique Métier
@@ -98,8 +102,8 @@ export function ConsoleTab() {
                 <button
                     onClick={() => setActiveChannel('system')}
                     className={`px-4 py-2 rounded-lg flex items-center text-sm font-bold transition-all ${activeChannel === 'system'
-                            ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white border border-slate-200 dark:border-white/10'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white border border-slate-200 dark:border-white/10'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                 >
                     <Activity className="w-4 h-4 mr-2" /> Logs API (Erreurs)
@@ -107,8 +111,8 @@ export function ConsoleTab() {
                 <button
                     onClick={() => setActiveChannel('iot')}
                     className={`px-4 py-2 rounded-lg flex items-center text-sm font-bold transition-all ${activeChannel === 'iot'
-                            ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white border border-slate-200 dark:border-white/10'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white border border-slate-200 dark:border-white/10'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                 >
                     <Cpu className="w-4 h-4 mr-2" /> Traffic IoT (MQTT)
@@ -123,7 +127,7 @@ export function ConsoleTab() {
                         <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                     </div>
                     <div className="text-xs font-mono text-slate-500">
-                        hubbee-vps@root:~_{activeChannel}_logs
+                        ubbee-vps@root:~_{activeChannel}_logs
                     </div>
                 </div>
 

@@ -20,6 +20,7 @@ let Zone = class Zone {
     floor;
     site;
     sensors;
+    deletedAt;
 };
 exports.Zone = Zone;
 __decorate([
@@ -46,6 +47,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => sensor_entity_1.Sensor, (sensor) => sensor.zone),
     __metadata("design:type", Array)
 ], Zone.prototype, "sensors", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)(),
+    __metadata("design:type", Date)
+], Zone.prototype, "deletedAt", void 0);
 exports.Zone = Zone = __decorate([
     (0, typeorm_1.Entity)()
 ], Zone);

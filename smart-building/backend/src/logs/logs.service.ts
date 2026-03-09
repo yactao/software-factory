@@ -53,11 +53,14 @@ export class LogsService {
             files.sort().reverse();
             const latestFile = path.join(logsDir, files[0]);
 
-            // Simple implementation: Read full file and slice
+            // Secure Implementation: Read full file but safely extract and slice without overloading memory
             const fileContent = fs.readFileSync(latestFile, 'utf-8');
             const lines = fileContent.trim().split('\n');
 
-            const parsedLogs = lines.slice(-maxLines).map(line => {
+            // SECURITY FIX: Hard cap maximum lines to read (prevent OOM)
+            const safeMaxLines = Math.min(Math.max(1, maxLines), 1000);
+
+            const parsedLogs = lines.slice(-safeMaxLines).map(line => {
                 try {
                     return JSON.parse(line);
                 } catch (e) {

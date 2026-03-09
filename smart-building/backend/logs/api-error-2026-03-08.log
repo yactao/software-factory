@@ -1,0 +1,2 @@
+{"context":"NestApplication","level":"error","message":"Error: listen EADDRINUSE: address already in use 0.0.0.0:3001","stack":[null],"timestamp":"2026-03-08T18:08:14.966Z"}
+{"context":"NestApplication","level":"error","message":"Error: listen EADDRINUSE: address already in use 0.0.0.0:3001","stack":[null],"timestamp":"2026-03-08T18:21:12.038Z"}

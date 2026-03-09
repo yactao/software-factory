@@ -23,6 +23,11 @@ let RolesGuard = class RolesGuard {
                 throw new common_1.ForbiddenException('Rôle insuffisant. Redirection rejetée.');
             }
         }
+        if (path.includes('/api/logs')) {
+            if (userRole !== 'SUPER_ADMIN') {
+                throw new common_1.ForbiddenException('L\'accès aux journaux d\'audit et de sécurité est réservé aux Administrateurs Globaux.');
+            }
+        }
         if (userRole === 'CLIENT') {
             if (path.includes('/api/rules') && method !== 'GET') {
                 throw new common_1.ForbiddenException('Opération non autorisée pour votre profil Client.');

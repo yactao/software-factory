@@ -8,7 +8,7 @@ export const loggerConfig = {
             format: winston.format.combine(
                 winston.format.timestamp(),
                 winston.format.ms(),
-                nestWinstonModuleUtilities.format.nestLike('HUBBEE-API', {
+                nestWinstonModuleUtilities.format.nestLike('UBBEE-API', {
                     colors: true,
                     prettyPrint: true,
                 }),

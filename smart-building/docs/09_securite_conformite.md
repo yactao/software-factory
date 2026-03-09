@@ -51,3 +51,11 @@ La plateforme **UBBEE** a été pensée pour minimiser l'impact sur la vie priv�
 L'intégration de modèles d'Intelligence Artificielle de type LLM (Large Language Models) dans la GTB fait l'objet d'un "sandboxing" (voir document `07_copilot_ia.md`) :
 - **Human-in-the-Middle (HIM) :** L'IA ne possède aucun accès direct aux relais de puissance ou aux déclencheurs CVC de vos bâtiments. Chaque action demandée par le Copilote déclenche un composant visuel de confirmation (Carte d'autorisation), exigeant une action physique et intentionnelle d'un opérateur humain (Energy Manager) authentifié. 
 - Les requêtes générées vers les serveurs LLM extérieurs ne transmettent jamais l'identité nominative du requérant ni d'informations confidentielles du client, mais uniquement le contexte technique immédiat de la salle (Température, Nom matériel, ID Anonymisé).
+
+---
+
+## 🛡️ 5. Audits et Tests d'Intrusion (Wargames)
+
+Afin d'éprouver la résilience de notre code et de notre architecture, nous organisons périodiquement des exercices de type "Red Team vs Blue Team". Ces simulations d'attaque permettent de traquer les failles architecturales profondes (injections avancées, dénis de service, fuites mémoire) avant le déploiement public.
+
+Pour plus de détails, vous pouvez consulter le **[Rapport du premier Audit de Sécurité Interne (Mars 2026)](./11_rapport_audit_securite.md)**, qui détaille les méthodes offensives employées et les correctifs déployés avec succès.

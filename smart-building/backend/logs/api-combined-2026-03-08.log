@@ -1,0 +1,78 @@
+{"context":"NestFactory","level":"info","message":"Starting Nest application...","timestamp":"2026-03-08T18:08:14.658Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmModule dependencies initialized","timestamp":"2026-03-08T18:08:14.673Z"}
+{"context":"InstanceLoader","level":"info","message":"NotificationsModule dependencies initialized","timestamp":"2026-03-08T18:08:14.676Z"}
+{"context":"InstanceLoader","level":"info","message":"PassportModule dependencies initialized","timestamp":"2026-03-08T18:08:14.677Z"}
+{"context":"InstanceLoader","level":"info","message":"JwtModule dependencies initialized","timestamp":"2026-03-08T18:08:14.677Z"}
+{"context":"InstanceLoader","level":"info","message":"AiModule dependencies initialized","timestamp":"2026-03-08T18:08:14.678Z"}
+{"context":"NestFactory","level":"info","message":"Starting Nest application...","timestamp":"2026-03-08T18:18:11.580Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmModule dependencies initialized","timestamp":"2026-03-08T18:18:11.595Z"}
+{"context":"InstanceLoader","level":"info","message":"NotificationsModule dependencies initialized","timestamp":"2026-03-08T18:18:11.596Z"}
+{"context":"InstanceLoader","level":"info","message":"PassportModule dependencies initialized","timestamp":"2026-03-08T18:18:11.596Z"}
+{"context":"InstanceLoader","level":"info","message":"JwtModule dependencies initialized","timestamp":"2026-03-08T18:18:11.597Z"}
+{"context":"InstanceLoader","level":"info","message":"AiModule dependencies initialized","timestamp":"2026-03-08T18:18:11.597Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmCoreModule dependencies initialized","timestamp":"2026-03-08T18:18:11.636Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmModule dependencies initialized","timestamp":"2026-03-08T18:18:11.637Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmModule dependencies initialized","timestamp":"2026-03-08T18:18:11.637Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmModule dependencies initialized","timestamp":"2026-03-08T18:18:11.637Z"}
+{"context":"CopilotService","level":"warn","message":"DEEPSEEK_API_KEY is not defined in .env! Copilot will not work.","timestamp":"2026-03-08T18:18:11.639Z"}
+{"context":"InstanceLoader","level":"info","message":"LogsModule dependencies initialized","timestamp":"2026-03-08T18:18:11.640Z"}
+{"context":"InstanceLoader","level":"info","message":"AuthModule dependencies initialized","timestamp":"2026-03-08T18:18:11.640Z"}
+{"context":"InstanceLoader","level":"info","message":"CopilotModule dependencies initialized","timestamp":"2026-03-08T18:18:11.641Z"}
+{"context":"InstanceLoader","level":"info","message":"AppModule dependencies initialized","timestamp":"2026-03-08T18:18:11.641Z"}
+{"context":"RoutesResolver","level":"info","message":"AppController {/api}:","timestamp":"2026-03-08T18:18:11.648Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api, GET} route","timestamp":"2026-03-08T18:18:11.649Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/health, GET} route","timestamp":"2026-03-08T18:18:11.650Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/sites, GET} route","timestamp":"2026-03-08T18:18:11.650Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/organizations, GET} route","timestamp":"2026-03-08T18:18:11.651Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/organizations, POST} route","timestamp":"2026-03-08T18:18:11.651Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/organizations/:id, PUT} route","timestamp":"2026-03-08T18:18:11.652Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/organizations/:id, DELETE} route","timestamp":"2026-03-08T18:18:11.652Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/sites, POST} route","timestamp":"2026-03-08T18:18:11.652Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/sites/:id, PUT} route","timestamp":"2026-03-08T18:18:11.653Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/sites/:id, DELETE} route","timestamp":"2026-03-08T18:18:11.653Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/zones, POST} route","timestamp":"2026-03-08T18:18:11.653Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/zones/:id, PUT} route","timestamp":"2026-03-08T18:18:11.654Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/zones/:id, DELETE} route","timestamp":"2026-03-08T18:18:11.654Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/sensors, GET} route","timestamp":"2026-03-08T18:18:11.654Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/gateways, GET} route","timestamp":"2026-03-08T18:18:11.655Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/gateways, POST} route","timestamp":"2026-03-08T18:18:11.655Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/readings, GET} route","timestamp":"2026-03-08T18:18:11.655Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/energy/global, GET} route","timestamp":"2026-03-08T18:18:11.655Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/temperature/average, GET} route","timestamp":"2026-03-08T18:18:11.656Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/alerts, GET} route","timestamp":"2026-03-08T18:18:11.656Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/energy/hvac-performance, GET} route","timestamp":"2026-03-08T18:18:11.656Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/rules, GET} route","timestamp":"2026-03-08T18:18:11.656Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/rules, POST} route","timestamp":"2026-03-08T18:18:11.657Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/iot/webhook, POST} route","timestamp":"2026-03-08T18:18:11.657Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/dashboard/kpis, GET} route","timestamp":"2026-03-08T18:18:11.658Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/search, GET} route","timestamp":"2026-03-08T18:18:11.658Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/users, GET} route","timestamp":"2026-03-08T18:18:11.658Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/users, POST} route","timestamp":"2026-03-08T18:18:11.658Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/users/:id, PUT} route","timestamp":"2026-03-08T18:18:11.659Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/users/:id, DELETE} route","timestamp":"2026-03-08T18:18:11.659Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/custom-roles, GET} route","timestamp":"2026-03-08T18:18:11.659Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/custom-roles, POST} route","timestamp":"2026-03-08T18:18:11.660Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/custom-roles/:id, PUT} route","timestamp":"2026-03-08T18:18:11.660Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/custom-roles/:id, DELETE} route","timestamp":"2026-03-08T18:18:11.660Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/equipment/action, POST} route","timestamp":"2026-03-08T18:18:11.661Z"}
+{"context":"RoutesResolver","level":"info","message":"IntegrationsController {/api/integrations}:","timestamp":"2026-03-08T18:18:11.661Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/integrations/mapping, POST} route","timestamp":"2026-03-08T18:18:11.661Z"}
+{"context":"RoutesResolver","level":"info","message":"AiController {/api/ai}:","timestamp":"2026-03-08T18:18:11.661Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/ai/generate-rule, POST} route","timestamp":"2026-03-08T18:18:11.662Z"}
+{"context":"RoutesResolver","level":"info","message":"AuthController {/api/auth}:","timestamp":"2026-03-08T18:18:11.662Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/auth/login, POST} route","timestamp":"2026-03-08T18:18:11.663Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/auth/me, GET} route","timestamp":"2026-03-08T18:18:11.663Z"}
+{"context":"RoutesResolver","level":"info","message":"CopilotController {/api/copilot}:","timestamp":"2026-03-08T18:18:11.663Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/copilot/chat, POST} route","timestamp":"2026-03-08T18:18:11.664Z"}
+{"context":"RoutesResolver","level":"info","message":"LogsController {/api/logs}:","timestamp":"2026-03-08T18:18:11.664Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/logs/audit, GET} route","timestamp":"2026-03-08T18:18:11.671Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/logs/system, GET} route","timestamp":"2026-03-08T18:18:11.672Z"}
+{"context":"RouterExplorer","level":"info","message":"Mapped {/api/logs/iot, GET} route","timestamp":"2026-03-08T18:18:11.672Z"}
+{"context":"NestApplication","level":"info","message":"Nest application successfully started","timestamp":"2026-03-08T18:18:11.717Z"}
+{"context":"NestFactory","level":"info","message":"Starting Nest application...","timestamp":"2026-03-08T18:21:11.891Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmModule dependencies initialized","timestamp":"2026-03-08T18:21:11.904Z"}
+{"context":"InstanceLoader","level":"info","message":"NotificationsModule dependencies initialized","timestamp":"2026-03-08T18:21:11.904Z"}
+{"context":"InstanceLoader","level":"info","message":"PassportModule dependencies initialized","timestamp":"2026-03-08T18:21:11.905Z"}
+{"context":"InstanceLoader","level":"info","message":"JwtModule dependencies initialized","timestamp":"2026-03-08T18:21:11.905Z"}
+{"context":"InstanceLoader","level":"info","message":"AiModule dependencies initialized","timestamp":"2026-03-08T18:21:11.906Z"}
+{"context":"InstanceLoader","level":"info","message":"TypeOrmCoreModule dependencies initialized","timestamp":"2026-03-08T18:21:11.940Z"}

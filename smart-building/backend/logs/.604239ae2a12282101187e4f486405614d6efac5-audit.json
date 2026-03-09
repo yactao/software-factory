@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 7
+    },
+    "auditLog": "logs\\.604239ae2a12282101187e4f486405614d6efac5-audit.json",
+    "files": [
+        {
+            "date": 1772993294007,
+            "name": "logs\\iot-traffic-2026-03-08.log",
+            "hash": "8f3262d0311ef617d57631423ead662874be1fb611281c83db0b4fd113666d06"
+        }
+    ],
+    "hashType": "sha256"
+}

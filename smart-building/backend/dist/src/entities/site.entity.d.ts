@@ -15,4 +15,5 @@ export declare class Site {
     organization: Organization;
     organizationId: string;
     gateways: Gateway[];
+    deletedAt: Date;
 }
