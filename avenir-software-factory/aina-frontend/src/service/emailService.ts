@@ -59,9 +59,10 @@ export async function downloadEmailAttachment(
   filename: string,
   ainaToken: string
 ) {
+  const API_BASE = import.meta.env.VITE_API_BASE || "";
   const res = await fetch(
     //`http://localhost:8000/api/aina/email/${messageId}/attachments/${attachmentId}/download`,
-    `https://app-rag-its-new2.azurewebsites.net/api/aina/email/${messageId}/attachments/${attachmentId}/download`,
+    `${API_BASE}/api/aina/email/${messageId}/attachments/${attachmentId}/download`,
     {
       method: "GET",
       headers: {

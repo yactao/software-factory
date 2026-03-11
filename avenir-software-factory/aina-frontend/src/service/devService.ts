@@ -1,5 +1,5 @@
 // src/service/devService.ts
-const API_BASE = import.meta.env.VITE_API_BASE || "https://app-rag-its-new2.azurewebsites.net";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 export interface DevResponse {
     answer: string;

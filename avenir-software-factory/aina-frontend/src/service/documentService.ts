@@ -4,7 +4,7 @@ import { msalInstance } from "../utils/msalInstance";
 import { loginRequest } from "./authConfig";
 import type { PreviewResponse } from "./previewService";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "https://app-rag-its-new2.azurewebsites.net";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 //const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 /**

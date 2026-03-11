@@ -2,7 +2,7 @@
 import { msalInstance } from "../utils/msalInstance";
 import { loginRequest } from "./authConfig";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "https://app-rag-its-new2.azurewebsites.net";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 export interface PreviewResponse {
   url: string;

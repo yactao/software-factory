@@ -3,7 +3,7 @@ import { loginRequest } from "./authConfig";
 import type { VisionResponse } from "./visionService";
 
 const API_BASE =
-  import.meta.env.VITE_API_BASE || "https://app-rag-its-new2.azurewebsites.net";
+  import.meta.env.VITE_API_BASE || "";
 
 export type PlaqueVisionResponse = VisionResponse;
 

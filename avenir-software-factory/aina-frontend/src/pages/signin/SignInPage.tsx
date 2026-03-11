@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4001";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 const SignInPage: React.FC = () => {
   const navigate = useNavigate();
