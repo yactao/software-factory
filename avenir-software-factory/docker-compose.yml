@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # 1. Base de données PostgreSQL (Stockage des Users, ChatEvents, Invoicing)
+  postgres:
+    image: postgres:15-alpine
+    container_name: aina-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aina_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aina_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-aina_saas}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - aina-network
+
+  # 2. RabbitMQ (Le broker asynchrone ultra-stable pour les agents)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: aina-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-aina_mq}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-aina_mq_secure}
+    ports:
+      - "5672:5672"   # Port d'application
+      - "15672:15672" # Interface d'administration web (optionnel en prod stricte)
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+    networks:
+      - aina-network
+
+  # 3. L'Orchestrateur (API Node.js + Prisma + Workers)
+  orchestrator:
+    build:
+      context: ./aina-saas-orchestrator
+      dockerfile: Dockerfile
+    container_name: aina-orchestrator
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aina_admin}:${POSTGRES_PASSWORD:-aina_secure_password_2026}@postgres:5432/${POSTGRES_DB:-aina_saas}?schema=public
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-aina_mq}:${RABBITMQ_PASS:-aina_mq_secure}@rabbitmq:5672
+      # SLM_API_BASE: Paramétrez ici l'URL de votre fournisseur SLM/LLM (Mistral, Azure, etc.)
+      - SLM_API_BASE=${SLM_API_BASE:-https://api.mistral.ai/v1}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - aina-network
+
+  # 4. Le Navigateur Frontend (React Vite servi via Nginx)
+  frontend:
+    build:
+      context: ./aina-frontend
+      dockerfile: Dockerfile
+      args:
+        # A remplacer par votre nom de domaine en production (ex: https://api.aina-factory.com)
+        - VITE_API_BASE=http://localhost:8000
+    container_name: aina-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - orchestrator
+    restart: unless-stopped
+    networks:
+      - aina-network
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  aina-network:
+    driver: bridge
